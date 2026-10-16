@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Search · Nebula Gear{% endblock %}
+{% block main %}
+<h1>{% if q %}Search results{% else %}Search{% endif %}</h1>
+<form role="search" action="/search" method="get">
+  <label for="q">Search</label>
+  <input type="search" id="q" name="q" value="{{ q or '' }}">
+  <button type="submit">Search</button>
+</form>
+{% if q and q.strip() %}
+  {% if results %}
+  <ul aria-label="Results">
+    {% for r in results %}
+    <li>
+      <a href="/product/{{ r.id }}">{{ r.name }}</a>
+      {% if r.price is not none %}<span>{{ '%.2f' | format(r.price) }}</span>{% endif %}
+      {% if release == "v2" %}
+      <button type="button" class="add" data-idx="{{ loop.index0 }}" {% if r.stock <= 0 %}disabled{% endif %}>Add to cart</button>
+      {% else %}
+      <button type="button" class="add" data-index="{{ loop.index0 }}" {% if r.stock <= 0 %}disabled{% endif %}>Add to cart</button>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <script type="application/json" id="results-data">{{ results_json | safe }}</script>
+  <script src="/static/search.js"></script>
+  {% else %}
+  <p>No products match “{{ q }}”.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>Nebula Gear</h1>
+<form role="search" action="/search" method="get">
+  <label for="q">Search</label>
+  <input type="search" id="q" name="q">
+  <button type="submit">Search</button>
+</form>
+<h2>Featured</h2>
+<ul aria-label="Featured products" class="cards">
+  {% for p in products %}<li><a href="/product/{{ p.id }}">{{ p.name }}</a></li>{% endfor %}
+</ul>
+<h2>Categories</h2>
+<ul aria-label="Categories">
+  {% for slug, name in categories.items() %}<li><a href="/category/{{ slug }}">{{ name }}</a></li>{% endfor %}
+</ul>
+{% endblock %}

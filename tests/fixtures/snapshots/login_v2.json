@@ -1,0 +1,6 @@
+{
+ "url": "/login",
+ "release": "v2",
+ "page": "- banner:\n  - paragraph: \"Spring sale: use code SAVE10 for 10% off (not valid on sale items).\"\n  - navigation \"Main\":\n    - link \"Home\":\n      - /url: /\n    - link \"Search\":\n      - /url: /search\n    - link \"Cart (0)\":\n      - /url: /cart\n    - link \"Wishlist\":\n      - /url: /wishlist\n    - link \"Gift cards\":\n      - /url: /gift-cards\n    - link \"Log in\":\n      - /url: /login\n- main:\n  - heading \"Log in\" [level=1]\n  - text: Email\n  - textbox \"Email\"\n  - text: Password\n  - textbox \"Password\"\n  - button \"Log in\"\n- contentinfo:\n  - paragraph: Nebula Gear \u00b7 synthetic demo store \u00b7 release v2",
+ "main": "- main:\n  - heading \"Log in\" [level=1]\n  - text: Email\n  - textbox \"Email\"\n  - text: Password\n  - textbox \"Password\"\n  - button \"Log in\""
+}

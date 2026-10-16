@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Gift cards · Nebula Gear{% endblock %}
+{% block main %}
+<h1>Gift cards</h1>
+<form method="post" action="/gift-cards">
+  <label for="gc">Gift card code</label>
+  <input id="gc" name="code">
+  <button type="submit">Redeem</button>
+</form>
+{% endblock %}

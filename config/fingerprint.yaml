@@ -1,0 +1,15 @@
+# State fingerprint rules (handoff §10.2). Tested by tests/unit/test_fingerprint.py.
+route_params:              # path segments that are parameters (numeric and hex/uuid are automatic)
+  - /category/:slug
+auth_in_pattern: '(?i)\b(log ?out|sign ?out)\b'
+landmark: main             # fall back to body if absent
+interactive_roles: [link, button, textbox, searchbox, combobox, checkbox, radio, switch, slider, spinbutton, tab, menuitem]
+collection_roles: [list, table, grid, feed, listbox]   # tokenized as role:empty / role:some, first item only
+item_roles: [listitem, row, article]
+transient_roles: [alert, status, log, marquee, timer, progressbar, tooltip]
+ignored_roles: [text, paragraph, img, generic, strong, emphasis, code, separator, figure, time]
+hash_chars: 8
+# Qualifiers for deterministic page names (people only; keys never use names, and the LLM names pages itself)
+name_hints:
+  - {candidate: '(?i)^remove coupon$', add: coupon applied}
+  - {route: '^/cart', token: 'list:some', add: with items}

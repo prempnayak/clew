@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="app-release" content="{{ release }}">
+  <title>{% block title %}Nebula Gear{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <p class="promo">Spring sale: use code SAVE10 for 10% off (not valid on sale items).</p>
+    <nav aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/search">Search</a>
+      <a href="/cart">Cart (<span data-testid="cart-count">{{ cart_count }}</span>)</a>
+      <a href="/wishlist">Wishlist</a>
+      {% if release == "v2" %}<a href="/gift-cards">Gift cards</a>{% endif %}
+      {% if user %}
+        <a href="/account">Account</a>
+        <form method="post" action="/logout" class="inline"><button type="submit">Log out</button></form>
+      {% else %}
+        <a href="/login">Log in</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% if flash %}<p role="status" class="flash">{{ flash }}</p>{% endif %}
+    {% block main %}{% endblock %}
+  </main>
+  <footer><p>Nebula Gear · synthetic demo store · release {{ release }}</p></footer>
+</body>
+</html>

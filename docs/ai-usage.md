@@ -1,0 +1,9 @@
+# AI-assistant disclosure
+
+The hackathon allows AI coding assistants if their use is disclosed. Every significant AI-assisted change is listed here: date, what changed, which tool, and how it was verified. The team reviewed each change and can walk through any file.
+
+| Date | What changed | Tool | How it was verified |
+|---|---|---|---|
+| 2026-10-17 | Repo scaffold, config files, query library (Q01–Q55) with loader, client, seed and docs generator | Claude Code (Claude Opus 5.5) | `tests/unit/test_queries.py` plays S1–S4 on embedded FalkorDB 4.18.3 and on the Docker image v4.22.1 |
+| 2026-10-17 | Nebula Gear store (v1/v2, planted bugs, decoys, test hooks) | Claude Code (Claude Opus 5.5) | `shop/tests/test_store.py`: each planted bug and decoy, per release |
+| 2026-10-17 | Fingerprint, extraction, page reader, perform, observe, route, locate, explorer worker, oracles | Claude Code (Claude Opus 5.5) | Snapshot fixtures of 54 real store pages (`tests/unit/test_fingerprint.py`, `test_extract.py`), table-driven oracle tests, and a live run where one explorer found B1–B3 |

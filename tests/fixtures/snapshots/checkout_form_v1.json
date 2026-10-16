@@ -1,0 +1,6 @@
+{
+ "url": "/checkout",
+ "release": "v1",
+ "page": "- banner:\n  - paragraph: \"Spring sale: use code SAVE10 for 10% off (not valid on sale items).\"\n  - navigation \"Main\":\n    - link \"Home\":\n      - /url: /\n    - link \"Search\":\n      - /url: /search\n    - link \"Cart (1)\":\n      - /url: /cart\n    - link \"Wishlist\":\n      - /url: /wishlist\n    - link \"Account\":\n      - /url: /account\n    - button \"Log out\"\n- main:\n  - heading \"Checkout\" [level=1]\n  - paragraph: 1 item(s) \u00b7 average 249.00 per item \u00b7 total 249.00\n  - text: Full name\n  - textbox \"Full name\"\n  - text: Address\n  - textbox \"Address\"\n  - text: City\n  - textbox \"City\"\n  - button \"Place order\"\n- contentinfo:\n  - paragraph: Nebula Gear \u00b7 synthetic demo store \u00b7 release v1",
+ "main": "- main:\n  - heading \"Checkout\" [level=1]\n  - paragraph: 1 item(s) \u00b7 average 249.00 per item \u00b7 total 249.00\n  - text: Full name\n  - textbox \"Full name\"\n  - text: Address\n  - textbox \"Address\"\n  - text: City\n  - textbox \"City\"\n  - button \"Place order\""
+}

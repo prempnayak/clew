@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }} · Nebula Gear{% endblock %}
+{% block main %}
+<h1>{{ p.name }}</h1>
+{% if p.image %}<img src="{{ p.image }}" alt="{{ p.name }}" width="240" height="160">
+{% else %}<div class="placeholder" role="img" aria-label="No image yet"></div>{% endif %}
+<p>Price: <span data-testid="product-price"{% if p.price is not none %} data-price="{{ '%.2f' | format(p.price) }}"{% endif %}></span></p>
+{% if p.on_sale %}<p class="sale">On sale</p>{% endif %}
+<form method="post" action="/cart/add">
+  <input type="hidden" name="product_id" value="{{ p.id }}">
+  <button type="submit"{% if p.stock <= 0 %} disabled{% endif %}>{% if release == "v2" %}Add to bag{% else %}Add to cart{% endif %}</button>
+</form>
+{% if p.stock <= 0 %}
+<p>Out of stock.</p>
+<button type="button" id="notify">Notify me</button>
+<p id="notify-status" role="status"></p>
+{% endif %}
+<form method="post" action="/wishlist/add">
+  <input type="hidden" name="product_id" value="{{ p.id }}">
+  <button type="submit">Add to wishlist</button>
+</form>
+<script src="/static/product.js"></script>
+{% endblock %}

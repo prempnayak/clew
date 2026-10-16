@@ -1,0 +1,27 @@
+# The hidden answer key. Read only by scorer/score.py. Excluded from every Clew image by .dockerignore
+# and never mounted into a Clew container (CLAUDE.md rule 7).
+bugs:
+  - id: B1
+    releases: [v1, v2]
+    title: Coupon stacks when applied twice
+    signature: '^rule\|coupon_max_10pct\|/cart'
+  - id: B2
+    releases: [v1]
+    title: Checkout with an empty cart returns 500
+    signature: '^http_5xx\|GET /checkout\|500$'
+  - id: B3
+    releases: [v1, v2]
+    title: Wishlist crashes for a product without an image
+    signature: "^pageerror\\|/wishlist\\|typeerror: cannot read properties of null"
+  - id: B4
+    releases: [v1, v2]
+    title: Product 8 shows NaN as its price
+    signature: '^rule\|price_is_number\|/product/:id'
+  - id: R1
+    releases: [v2]
+    title: Add to cart from search results throws (regression)
+    signature: '^regression\|/search\?q\|'
+decoys:
+  - {id: D1, description: Out-of-stock product has a disabled Add to cart, signature: '\|/product/:id.*(notify|add to cart)'}
+  - {id: D2, description: SAVE10 is rejected on sale items, signature: 'coupon.*sale'}
+  - {id: D3, description: favicon.ico returns 404, signature: 'favicon'}

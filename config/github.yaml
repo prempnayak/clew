@@ -1,0 +1,10 @@
+api: https://api.github.com
+labels:
+  - {name: clew, color: "5319e7", description: Filed by Clew}
+  - {name: P1, color: b60205, description: Wrong money or data, or a crash on an important page}
+  - {name: P2, color: d93f0b, description: Crash or 5xx elsewhere, or a regression}
+  - {name: P3, color: fbca04, description: Console errors and cosmetic issues}
+  - {name: regression, color: "0e8a16", description: Worked in the previous release}
+  - {name: "release:v1", color: c5def5, description: Found in release v1}
+  - {name: "release:v2", color: c5def5, description: Found in release v2}
+max_issues_per_hour: 20

@@ -1,0 +1,9 @@
+leases_ms: {action: 120000, job: 180000, read: 60000, report: 120000}
+poll_ms: 1000
+importance_every_s: 60
+version_poll_s: 5
+idle_stop_s: 60
+action_timeout_ms: 5000
+settle_ms: 5000
+defaults: {explorers: 4, minutes: 10, mode: shared}
+hosted: {max_explorers: 4, max_minutes: 10, daily_sessions: 30}

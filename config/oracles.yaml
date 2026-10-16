@@ -1,0 +1,12 @@
+# Detectors and filters (handoff §12.1)
+http_5xx: {same_origin_only: true}
+pageerror: {same_origin_only: true}
+console_error: {as: suspect}
+ignore:
+  - {kind: console_error, pattern: 'Failed to load resource: .*404'}
+  - {kind: console_error, pattern: 'Failed to load resource: .*50\d'}   # the response observer reports these
+  - {kind: response, url_pattern: '/favicon\.ico$'}
+confirm: {timeout_s: 10, attempts: 2}
+severity:
+  p1_rules: [coupon_max_10pct, cart_total, price_is_number]   # wrong money is always P1
+  p1_importance_percentile: 0.75                                # crash or 5xx on a top-quarter page

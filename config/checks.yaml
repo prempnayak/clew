@@ -1,0 +1,5 @@
+# rule id -> route patterns (functions live in clew/oracles/checks.py)
+cart_total: ['/cart', '/cart?notice']
+coupon_max_10pct: ['/cart', '/cart?notice']
+cart_count_matches: ['/cart', '/cart?notice']
+price_is_number: ['/product/:id']

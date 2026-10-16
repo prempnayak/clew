@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Checkout · Nebula Gear{% endblock %}
+{% block main %}
+<h1>Checkout</h1>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<p>{{ t.lines | length }} item(s) · average {{ '%.2f' | format(per_item) }} per item · total
+  <span data-testid="total">{{ '%.2f' | format(t.total) }}</span></p>
+<form method="post" action="/checkout">
+  <label for="name">Full name</label>
+  <input id="name" name="name">
+  <label for="address">Address</label>
+  <input id="address" name="address">
+  <label for="city">City</label>
+  <input id="city" name="city">
+  <button type="submit">Place order</button>
+</form>
+{% endblock %}

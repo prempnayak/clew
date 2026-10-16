@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Cart · Nebula Gear{% endblock %}
+{% block main %}
+<h1>Your cart</h1>
+{% if notice %}<p role="status">Your cart is empty. Add something before checking out.</p>{% endif %}
+{% if t.lines %}
+<ul aria-label="Cart items">
+  {% for l in t.lines %}
+  <li data-testid="line-item">
+    <span>{{ l.name }} × {{ l.qty }} · {{ '%.2f' | format((l.price or 0) * l.qty) }}</span>
+    <form method="post" action="/cart/remove" class="inline">
+      <input type="hidden" name="product_id" value="{{ l.id }}">
+      <button type="submit">Remove</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+<p>Subtotal <span data-testid="subtotal">{{ '%.2f' | format(t.subtotal) }}</span>
+ · Discount <span data-testid="discount">{{ '%.2f' | format(t.discount) }}</span>
+ · Total <span data-testid="total">{{ '%.2f' | format(t.total) }}</span></p>
+<form method="post" action="/cart/coupon">
+  <label for="code">Coupon code</label>
+  <input id="code" name="code">
+  <button type="submit">Apply</button>
+</form>
+{% if t.coupon %}
+<form method="post" action="/cart/coupon/remove"><button type="submit">Remove coupon</button></form>
+{% endif %}
+{% else %}
+<p>Your cart is empty.</p>
+{% endif %}
+<p><a href="/checkout">Proceed to checkout</a></p>
+{% endblock %}

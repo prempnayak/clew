@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Order confirmed · Nebula Gear{% endblock %}
+{% block main %}
+<h1>Order confirmed</h1>
+<p>Order {{ o.id }} · total {{ '%.2f' | format(o.total) }} · shipping to {{ o.city }}</p>
+<ul aria-label="Order items">
+  {% for i in items %}<li>{{ i.name }} × {{ i.qty }}</li>{% endfor %}
+</ul>
+<p><a href="/">Continue shopping</a></p>
+{% endblock %}
