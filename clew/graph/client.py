@@ -62,6 +62,7 @@ class Trace:
     params: dict
     rows: list[dict]
     ms: int
+    seq: int = 0
     at: float = field(default_factory=time.time)
 
 
@@ -73,6 +74,7 @@ class Graph:
         self.name = name
         self._g = db.select_graph(name)
         self.traces: list[Trace] = []
+        self.seq = 0  # increases with every query; callers use it to find the traces since a point in time
 
     # -- queries -------------------------------------------------------------------------------------------
     def run(self, qid: str, params: dict | None = None, read_only: bool = False) -> list[dict]:
@@ -86,7 +88,8 @@ class Graph:
             header = [h.decode() if isinstance(h, bytes) else h for h in header]
             rows = [dict(zip(header, (_value(v) for v in row), strict=False)) for row in res.result_set]
         ms = int((time.time() - started) * 1000)
-        self.traces.append(Trace(qid, params, rows[:5], ms))
+        self.seq += 1
+        self.traces.append(Trace(qid, params, rows[:5], ms, self.seq))
         del self.traces[:-50]
         return rows
 

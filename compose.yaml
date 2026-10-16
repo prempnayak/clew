@@ -1,0 +1,50 @@
+# No published ports here: compose.dev.yaml adds localhost ports; compose.deploy.yaml adds Caddy.
+name: clew
+x-app: &app
+  build: {context: ., dockerfile: Dockerfile}
+  image: clew-app
+  env_file: .env
+  restart: unless-stopped
+  depends_on: {falkordb: {condition: service_healthy}}
+  volumes: ["screenshots:/data/screenshots"]
+
+services:
+  falkordb:
+    image: falkordb/falkordb:${FALKORDB_TAG:-v4.22.1}
+    environment:
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD}
+      REDIS_ARGS: "--requirepass ${FALKORDB_PASSWORD} --appendonly yes --appendfsync everysec"
+    volumes: ["falkordb-data:/var/lib/falkordb/data"]   # V13: the data dir in 4.22
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$FALKORDB_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+  shop:
+    build: {context: ./shop}
+    env_file: .env
+    environment: {SHOP_DB: /srv/data/nebula.db}
+    volumes: ["shop-data:/srv/data"]
+    restart: unless-stopped
+  mcp:        {<<: *app, command: ["python", "-m", "clew.mcp_server.server"]}
+  api:        {<<: *app, command: ["uvicorn", "clew.api.app:app", "--host", "0.0.0.0", "--port", "8081"]}
+  scheduler:  {<<: *app, command: ["python", "-m", "clew.scheduler.watcher"]}
+  reporter:   {<<: *app, command: ["python", "-m", "clew.reporter.runner"], depends_on: {falkordb: {condition: service_healthy}, mcp: {condition: service_started}}}
+  controller:
+    <<: *app
+    command: ["python", "-m", "clew.controller.app"]
+    environment: {EXPLORER_IMAGE: clew-explorer, CLEW_NETWORK: clew_default, SCREENSHOT_VOLUME: clew_screenshots}
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]    # internal only; never published
+  explorer:   # built here; started per session by the controller (scaled to 0 by default)
+    build: {context: ., dockerfile: Dockerfile.explorer}
+    image: clew-explorer
+    env_file: .env
+    ipc: host
+    init: true
+    volumes: ["screenshots:/data/screenshots"]
+    depends_on: {falkordb: {condition: service_healthy}, shop: {condition: service_started}}
+    deploy: {replicas: 0}
+volumes:
+  falkordb-data:
+  shop-data:
+  screenshots:

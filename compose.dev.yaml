@@ -1,0 +1,6 @@
+# Localhost-only ports for development. Override the host ports in .env if they clash with other projects.
+services:
+  falkordb: {ports: ["127.0.0.1:${FALKORDB_DEV_PORT:-6379}:6379", "127.0.0.1:${FALKORDB_BROWSER_PORT:-3000}:3000"]}
+  shop:     {ports: ["127.0.0.1:${SHOP_DEV_PORT:-8090}:8090"]}
+  mcp:      {ports: ["127.0.0.1:${MCP_DEV_PORT:-8000}:8000"]}
+  api:      {ports: ["127.0.0.1:${API_DEV_PORT:-8081}:8081"]}

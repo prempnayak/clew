@@ -1,0 +1,8 @@
+# Only the API (which serves the UI) is public. The store's /__* test hooks, FalkorDB, MCP and the controller
+# are never routed.
+{$CLEW_DOMAIN} {
+	encode gzip
+	@hooks path /__*
+	respond @hooks 404
+	reverse_proxy api:8081
+}

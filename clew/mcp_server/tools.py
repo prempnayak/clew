@@ -58,7 +58,7 @@ def describe(d: dict, instance: dict | None = None) -> str:
     if d["kind"] == "fill_submit":
         inputs = json.loads(d.get("inputs") or "{}")
         fills = ", ".join(f'"{k}" = {placeholder(v) or "(empty)"}' for k, v in inputs.items())
-        return f'Fill {fills}, click "{sel["submit"]["name"]}"'
+        return f'Fill {fills}, click "{sel.get("submit", {}).get("name", d["label"])}"'
     if "href_route" in sel:
         text = (instance or {}).get("text") or sel.get("name") or d["label"]
         href = (instance or {}).get("href") or sel.get("href") or sel["href_route"]
@@ -251,6 +251,7 @@ class Tools:
         if not forms:
             return "element_ids must include a form (fill_submit element) from state_detail"
         form = forms[0]
+        cases = [c if isinstance(c, CaseIn) else CaseIn.model_validate(c) for c in cases]
         max_len = int(load("scope").get("max_input_length", 200))
         good = []
         for c in cases[:5]:

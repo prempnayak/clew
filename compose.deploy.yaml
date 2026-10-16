@@ -1,0 +1,11 @@
+# Hosted: only Caddy listens publicly; it routes to the API (which serves the UI) and never to /__* hooks.
+services:
+  caddy:
+    image: caddy:2.10
+    ports: ["80:80", "443:443"]
+    env_file: .env
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data"]
+    restart: unless-stopped
+    depends_on: [api]
+volumes:
+  caddy-data:

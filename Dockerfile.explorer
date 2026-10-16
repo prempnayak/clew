@@ -1,0 +1,13 @@
+# Explorer: the Playwright image version must match the playwright package (V3: 1.63.0 on both)
+FROM mcr.microsoft.com/playwright/python:v1.63.0-noble
+WORKDIR /app
+RUN pip install --no-cache-dir --break-system-packages uv==0.12.19
+COPY pyproject.toml uv.lock ./
+RUN uv export --frozen --no-dev --no-hashes --no-emit-project -o /tmp/req.txt \
+ && uv pip install --system --break-system-packages --no-cache -r /tmp/req.txt
+COPY clew ./clew
+COPY config ./config
+RUN mkdir -p /data/screenshots && chown -R pwuser /data
+ENV PYTHONPATH=/app PYTHONUNBUFFERED=1 CLEW_SCREENSHOTS=/data/screenshots
+USER pwuser
+CMD ["python", "-m", "clew.explorer.worker"]

@@ -18,14 +18,14 @@ def audited(fn: Callable[..., dict]) -> Callable[..., dict]:
     @functools.wraps(fn)
     def wrapper(self, *args: Any, agent: str, **kwargs: Any) -> dict:
         graph = self.graph
-        mark = len(graph.traces)
+        mark = graph.seq
         started = time.time()
         try:
             result = fn(self, *args, agent=agent, **kwargs)
         except Exception as e:  # noqa: BLE001 - tools never raise to the model
             result = {"ok": False, "error": f"{type(e).__name__}: {e}"}
         ms = int((time.time() - started) * 1000)
-        traces = graph.traces[mark:]
+        traces = [t for t in graph.traces if t.seq > mark]
         tool_id = short_id("T")
         summary = result.get("error") if not result.get("ok", True) else result.get("summary", "ok")
         graph.run(
