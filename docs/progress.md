@@ -2,20 +2,18 @@
 
 Last updated: 2026-10-17 (Sat), during the Claude Code build session.
 
-## Done
+## Done (all committed and pushed to origin/main)
 
-- **M0/M1 (committed):** store (v1/v2, bugs, decoys, hooks), query library Q01–Q55 with tests (V1 on 4.18.3 and 4.22.1), fingerprint and extraction on 54 real snapshots (V2), explorer worker, oracles, deterministic and Gemini page reader.
-- **M2 (in progress):** MCP server (`clew/mcp_server`), audited tools, GitHub client (dry run by default), Reporter runner (deterministic writer + ADK path), release watcher, importance, regression pipeline, `clew/dev.py` all-in-one runner.
-  - Verified locally: 4 explorers + reporter + watcher find, confirm in a fresh session and file B1, B2, B3 within ~70 s and B4 (variation mode) at ~3.5 min; Q32 duplicates = 0; no decoys filed.
-  - S4 verified locally: deploy v2 → 203 replay jobs + 4 verify_fix jobs; B2 verified fixed; B1/B3/B4 still present; "Add to bag" healed (rename Fact); Gift cards link added to every known page; R1 flagged as a regression.
+- **M0/M1:** store, query library Q01–Q55 (V1 on 4.18.3 + 4.22.1), fingerprint and extraction on 54 real snapshots (V2), explorer worker, oracles, page reader.
+- **M2:** MCP server and audited tools, Reporter, GitHub client (dry run), release watcher, regression pipeline. Locally: 4 explorers confirm and file B1–B4 with 0 duplicates; S4 run files R1, heals the rename, verifies B2 fixed, finds Gift cards. Integration test passes (`make test-integration`, ~6.5 min).
+- **M3:** API, SSE, Show Cypher, controller, CLI, war-room UI, Dockerfiles, Compose, Caddy, Makefile. Images build (V3 ✅: Playwright 1.63.0 image); the answer key is absent from the shop and app images; `make up` + `make seed` work (V13: data dir `/var/lib/falkordb/data`).
 
 ## Next (in order)
 
-1. ~~Integration test~~ done: `uv run pytest -m integration` (one explorer, ~6.5 min).
-2. API (FastAPI, SSE, sessions, missions, Show Cypher), controller (Docker kill/scale), `clew/cli.py`.
-3. Dockerfiles, `compose*.yaml`, Caddyfile, Makefile.
-4. War-room UI (Vite + React + Cytoscape).
-5. Scorer, S5 baseline script, README, `docs/graph-model.md`, `make docs`.
+1. In Docker: `make session N=4 MIN=5` → check the controller scales explorers (V12), then `make kill-explorer` (S2), `make restart-all` + mission (S3), `make deploy-v2` (S4). Local `.env` uses host ports 6391/3001/8095/8010/8082 (UI at http://localhost:8082).
+2. Scorer (`scorer/score.py`: planted_bugs.yaml + /__routes + Q33/Q52/Q32) and `eval/run_baseline.py` (S5 shared vs isolated).
+3. README (setup, graph model, Cypher list, tracks, AI disclosure), `docs/graph-model.md`; `make docs` already generates `docs/cypher.md`.
+4. Optional: Strategist runner (cut list #1; missions use the deterministic fallback in `clew/api/ops.py`), CI workflow.
 
 ## Needs a human
 
