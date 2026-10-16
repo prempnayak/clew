@@ -36,8 +36,9 @@ def client():
 
     backend = llm_backend()
     if backend == "vertex":
-        return genai.Client(vertexai=True, project=env("GOOGLE_CLOUD_PROJECT"),
-                            location=env("GOOGLE_CLOUD_LOCATION", "global"))
+        return genai.Client(
+            vertexai=True, project=env("GOOGLE_CLOUD_PROJECT"), location=env("GOOGLE_CLOUD_LOCATION", "global")
+        )
     if backend == "gemini_api":
         return genai.Client(api_key=env("GOOGLE_API_KEY"))
     raise LLMUnavailable(f"LLM_BACKEND={backend}")

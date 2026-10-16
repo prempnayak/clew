@@ -92,8 +92,18 @@ class Explorer:
         return None
 
     def heartbeat(self, state: str, work: str | None = None) -> None:
-        self.graph.run("Q28", {"name": self.name, "role": "explorer", "model": "page_reader", "session": self.session,
-                               "state": state, "work": work, "now": now_ms()})
+        self.graph.run(
+            "Q28",
+            {
+                "name": self.name,
+                "role": "explorer",
+                "model": "page_reader",
+                "session": self.session,
+                "state": state,
+                "work": work,
+                "now": now_ms(),
+            },
+        )
         self.graph.publish("agent.heartbeat", agent=self.name, state=state, work=work)
 
     def refresh_context(self) -> None:
@@ -173,16 +183,28 @@ class Explorer:
         fp = fingerprint(page.url, page_snap, main_snap)
         cands = extract(page_snap, page.url)
         name = default_name(fp.route, fp.auth, main_snap)
-        row = self.graph.one("Q03", {"key": fp.key, "route": fp.route, "auth": fp.auth, "fingerprint": fp.hash,
-                                     "name": name, "url": page.url.replace(self.base_url, ""), "agent": self.name,
-                                     "elements": json.dumps([c.to_dict() for c in cands]), "entry": entry,
-                                     "now": now_ms()})
+        row = self.graph.one(
+            "Q03",
+            {
+                "key": fp.key,
+                "route": fp.route,
+                "auth": fp.auth,
+                "fingerprint": fp.hash,
+                "name": name,
+                "url": page.url.replace(self.base_url, ""),
+                "agent": self.name,
+                "elements": json.dumps([c.to_dict() for c in cands]),
+                "entry": entry,
+                "now": now_ms(),
+            },
+        )
         arrival = Arrival(fp.key, fp.route, page.url, page_snap, main_snap, cands)
         if row["is_new"]:
             self.graph.publish("state.created", key=fp.key, name=name, by=self.name)
         if not row["read"]:
-            claim = self.graph.one("Q03b", {"key": fp.key, "agent": self.name, "now": now_ms(),
-                                            "lease_ms": lease_ms("read")})
+            claim = self.graph.one(
+                "Q03b", {"key": fp.key, "agent": self.name, "now": now_ms(), "lease_ms": lease_ms("read")}
+            )
             if claim:
                 await self.read(page, arrival, name)
         elif row["previous_elements"]:
@@ -190,15 +212,25 @@ class Explorer:
         return arrival
 
     async def read(self, page, arrival: Arrival, name: str) -> None:
-        facts = [f["text"] for f in self.graph.run("Q26", {"kinds": ["input", "precondition"], "limit": 10},
-                                                     read_only=True)]
-        ctx = page_reader.ReadContext(arrival.url, await page.title(), arrival.candidates, arrival.main_snap,
-                                      arrival.page_snap, facts, default_name=name)
+        facts = [
+            f["text"] for f in self.graph.run("Q26", {"kinds": ["input", "precondition"], "limit": 10}, read_only=True)
+        ]
+        ctx = page_reader.ReadContext(
+            arrival.url,
+            await page.title(),
+            arrival.candidates,
+            arrival.main_snap,
+            arrival.page_snap,
+            facts,
+            default_name=name,
+        )
         result, calls = await asyncio.to_thread(page_reader.read_page, ctx)
         self.pending_llm += calls
         rows = page_reader.action_rows(arrival.key, arrival.candidates, result, origin="page_reader")
-        self.graph.run("Q04", {"state": arrival.key, "name": result.state_name if calls else None, "actions": rows,
-                               "now": now_ms()})
+        self.graph.run(
+            "Q04",
+            {"state": arrival.key, "name": result.state_name if calls else None, "actions": rows, "now": now_ms()},
+        )
         for text in result.facts:
             self.fact(arrival.key, "input", text)
         log.info(kv(agent=self.name, read=arrival.key, actions=len(rows), llm_calls=calls))
@@ -223,18 +255,39 @@ class Explorer:
         log.info(kv(agent=self.name, new_elements=[c.identity for c in added], state=arrival.key))
 
     def fact(self, about: str, kind: str, text: str) -> None:
-        self.graph.run("Q25", {"about": about, "kind": kind, "text": text, "fact_id": short_id("F"),
-                               "agent": self.name, "release": self.release, "now": now_ms()})
+        self.graph.run(
+            "Q25",
+            {
+                "about": about,
+                "kind": kind,
+                "text": text,
+                "fact_id": short_id("F"),
+                "agent": self.name,
+                "release": self.release,
+                "now": now_ms(),
+            },
+        )
 
     # -- routes ---------------------------------------------------------------------------------------------------
-    async def walk(self, page, obs: Observer, steps: list[route.Step], here: Arrival) -> Arrival | None:
-        """Walk known steps; None on drift (a step reached an unexpected page) or a missing element."""
+    async def walk(
+        self, page, obs: Observer, steps: list[route.Step], here: Arrival, replans: int = 1
+    ) -> Arrival | None:
+        """Walk known steps. If a step lands on another page than the map expected (drift), re-plan once from
+        where we are to the same destination. None if that fails too, or an element is missing."""
+        goal = steps[-1].expected if steps else here.key
         for s in steps:
             done = await self.act(page, obs, s.details, here, instance=0)
-            if done.arrival is None or done.arrival.key != s.expected:
-                log.info(kv(agent=self.name, drift=s.key, expected=s.expected,
-                            got=done.arrival.key if done.arrival else None, error=done.performed.error))
+            if done.arrival is None:
+                log.info(kv(agent=self.name, missing=s.key, error=done.performed.error))
                 return None
+            if done.arrival.key != s.expected:
+                log.info(kv(agent=self.name, drift=s.key, expected=s.expected, got=done.arrival.key))
+                if replans <= 0 or goal is None:
+                    return None
+                rest = route.plan(self.graph, done.arrival.key, goal)
+                if rest is None:
+                    return None
+                return await self.walk(page, obs, rest, done.arrival, replans - 1)
             here = done.arrival
         return here
 
@@ -249,8 +302,7 @@ class Explorer:
             return None
         return await self.walk(page, obs, steps, start)
 
-    async def act(self, page, obs: Observer, details: dict, here: Arrival, instance: int,
-                  heal: bool = True) -> Outcome:
+    async def act(self, page, obs: Observer, details: dict, here: Arrival, instance: int, heal: bool = True) -> Outcome:
         """Perform one stored action from `here`, healing a renamed element when possible."""
         sel = json.loads(details.get("selector") or "{}")
         inputs = json.loads(details.get("inputs") or "{}")
@@ -271,8 +323,9 @@ class Explorer:
         action reached before, it's a rename: update the selector (Q21) and remember it as a Fact."""
         state = self.graph.one("Q42", {"key": here.key}, read_only=True) or {"actions": []}
         taken = {a["name"] for a in state["actions"] if a.get("key") and a["key"] != details["key"]}
-        taken |= {n for a in state["actions"] if a.get("key") and a["key"] != details["key"]
-                  for n in (a.get("aliases") or [])}
+        taken |= {
+            n for a in state["actions"] if a.get("key") and a["key"] != details["key"] for n in (a.get("aliases") or [])
+        }
         outcomes = self.graph.run("Q48", {"action": details["key"]}, read_only=True)
         known = {o["target"] for o in outcomes if o["ok"]}
         target_name = next((o["target_name"] for o in outcomes if o["ok"]), "")
@@ -289,18 +342,29 @@ class Explorer:
             new_sel = {"role": cand.role, "name": cand.name}
         obs.reset()
         started = time.time()
-        done = await perform(page, new_sel, details["kind"], json.loads(details.get("inputs") or "{}"), instance,
-                             self.account)
+        done = await perform(
+            page, new_sel, details["kind"], json.loads(details.get("inputs") or "{}"), instance, self.account
+        )
         if not done.ok:
             return None
         arrival = await self.arrive(page)
         ms = int((time.time() - started) * 1000)
         if arrival.key in known:
             text = f"Renamed '{old_name}' → '{cand.name}' in {self.release}"
-            self.graph.run("Q21", {"action": details["key"], "new_name": normalize(cand.name),
-                                   "new_label": cand.name if role != "form" else details["label"],
-                                   "selector": json.dumps(new_sel), "text": text, "fact_id": short_id("F"),
-                                   "agent": self.name, "release": self.release, "now": now_ms()})
+            self.graph.run(
+                "Q21",
+                {
+                    "action": details["key"],
+                    "new_name": normalize(cand.name),
+                    "new_label": cand.name if role != "form" else details["label"],
+                    "selector": json.dumps(new_sel),
+                    "text": text,
+                    "fact_id": short_id("F"),
+                    "agent": self.name,
+                    "release": self.release,
+                    "now": now_ms(),
+                },
+            )
             self.graph.publish("action.healed", action=details["key"], new_name=cand.name)
             log.info(kv(agent=self.name, healed=details["key"], new_name=cand.name))
         return Outcome(arrival, done, [], True, ms)
@@ -323,8 +387,9 @@ class Explorer:
                 await ctx.close()
         log.info(kv(agent=self.name, gave_up=work.target, note="claim will lapse and be retried"))
 
-    async def perform_and_record(self, page, obs: Observer, work: Work, d: dict, here: Arrival,
-                                 instance: int) -> Outcome:
+    async def perform_and_record(
+        self, page, obs: Observer, work: Work, d: dict, here: Arrival, instance: int
+    ) -> Outcome:
         out = await self.act(page, obs, d, here, instance, heal=work.kind in ("replay", "confirm", "verify_fix"))
         events = obs.take()
         if out.arrival is None:
@@ -337,14 +402,36 @@ class Explorer:
         ok = out.performed.ok and not hard
         out.problems, out.ok = problems, ok
         error = (hard[0].message if hard else out.performed.error) if not ok else None
-        self.graph.run("Q07", {"action": d["key"], "target": out.arrival.key, "release": self.release, "ok": ok,
-                               "error": error, "ms": out.ms, "agent": self.name, "work_kind": work.kind,
-                               "now": now_ms()})
-        step = self.graph.one("Q08", {"action": d["key"], "run": self.run_id, "agent": self.name,
-                                      "session": self.session, "release": self.release,
-                                      "llm_calls": self.pending_llm, "ok": ok, "ms": out.ms,
-                                      "work_kind": work.kind, "instance": json.dumps(out.performed.instance),
-                                      "now": now_ms()})
+        self.graph.run(
+            "Q07",
+            {
+                "action": d["key"],
+                "target": out.arrival.key,
+                "release": self.release,
+                "ok": ok,
+                "error": error,
+                "ms": out.ms,
+                "agent": self.name,
+                "work_kind": work.kind,
+                "now": now_ms(),
+            },
+        )
+        step = self.graph.one(
+            "Q08",
+            {
+                "action": d["key"],
+                "run": self.run_id,
+                "agent": self.name,
+                "session": self.session,
+                "release": self.release,
+                "llm_calls": self.pending_llm,
+                "ok": ok,
+                "ms": out.ms,
+                "work_kind": work.kind,
+                "instance": json.dumps(out.performed.instance),
+                "now": now_ms(),
+            },
+        )
         self.pending_llm = 0
         self.graph.publish("transition", action=d["key"], target=out.arrival.key, ok=ok, agent=self.name)
         self.learn(d, out)
@@ -370,14 +457,34 @@ class Explorer:
     async def record_bug(self, page, p: Problem, d: dict, out: Outcome, step_n: int, work: Work) -> None:
         status = "suspect" if work.kind == "replay" else p.status
         shot = await self.screenshot(page, p.sig)
-        evidence = {"message": p.message, "agent": self.name, "run": self.run_id, "step": step_n,
-                    "url": out.arrival.url.replace(self.base_url, ""), "instance": out.performed.instance,
-                    "inputs": json.loads(d.get("inputs") or "{}"), "release": self.release, "screenshot": shot,
-                    **{k: v for k, v in p.details.items() if k != "values"}, "values": p.details.get("values")}
+        evidence = {
+            "message": p.message,
+            "agent": self.name,
+            "run": self.run_id,
+            "step": step_n,
+            "url": out.arrival.url.replace(self.base_url, ""),
+            "instance": out.performed.instance,
+            "inputs": json.loads(d.get("inputs") or "{}"),
+            "release": self.release,
+            "screenshot": shot,
+            **{k: v for k, v in p.details.items() if k != "values"},
+            "values": p.details.get("values"),
+        }
         sev = severity(p, self.importance_percentile(d["state"]))
-        row = self.graph.one("Q12", {"action": d["key"], "release": self.release, "sig": p.sig, "kind": p.kind,
-                                     "title": p.title, "initial_status": status, "severity": sev,
-                                     "evidence": json.dumps(evidence), "now": now_ms()})
+        row = self.graph.one(
+            "Q12",
+            {
+                "action": d["key"],
+                "release": self.release,
+                "sig": p.sig,
+                "kind": p.kind,
+                "title": p.title,
+                "initial_status": status,
+                "severity": sev,
+                "evidence": json.dumps(evidence),
+                "now": now_ms(),
+            },
+        )
         if row:
             self.graph.publish("bug.updated", sig=p.sig, status=row["status"], count=row["count"])
             log.info(kv(agent=self.name, bug=p.sig, status=row["status"], count=row["count"]))
@@ -403,8 +510,9 @@ class Explorer:
 
     # -- jobs --------------------------------------------------------------------------------------------------------
     def finish(self, work: Work, status: str, result: str) -> None:
-        self.graph.run("Q14", {"id": work.job_id, "agent": self.name, "status": status, "result": result,
-                               "now": now_ms()})
+        self.graph.run(
+            "Q14", {"id": work.job_id, "agent": self.name, "status": status, "result": result, "now": now_ms()}
+        )
         self.graph.publish("job.updated", id=work.job_id, status=status, result=result)
         log.info(kv(agent=self.name, job=work.job_id, kind=work.kind, status=status, result=result))
 
@@ -435,8 +543,9 @@ class Explorer:
         if not bug or not rows or rows[0]["cost"] >= 1000:
             self.finish(work, "failed", "no route to the trigger")
             if work.kind == "confirm" and bug:
-                self.graph.run("Q15", {"sig": sig, "status": "not_reproduced", "severity": None, "title": None,
-                                       "now": now_ms()})
+                self.graph.run(
+                    "Q15", {"sig": sig, "status": "not_reproduced", "severity": None, "title": None, "now": now_ms()}
+                )
             return
         evidence = json.loads(bug["evidence"] or "{}")
         best = rows[0]
@@ -477,9 +586,20 @@ class Explorer:
                 self.finish(work, "failed", "could not reach the trigger")
                 return
             if reproduced:
-                self.graph.run("Q12", {"action": trigger.key, "release": self.release, "sig": sig, "kind": bug["kind"],
-                                       "title": bug["title"], "initial_status": "new", "severity": bug["severity"],
-                                       "evidence": bug["evidence"], "now": now})
+                self.graph.run(
+                    "Q12",
+                    {
+                        "action": trigger.key,
+                        "release": self.release,
+                        "sig": sig,
+                        "kind": bug["kind"],
+                        "title": bug["title"],
+                        "initial_status": "new",
+                        "severity": bug["severity"],
+                        "evidence": bug["evidence"],
+                        "now": now,
+                    },
+                )
                 self.finish(work, "done", f"still present in {self.release}")
             else:
                 self.graph.run("Q22", {"sig": sig, "release": self.release, "now": now})

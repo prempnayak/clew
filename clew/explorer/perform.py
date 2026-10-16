@@ -110,7 +110,8 @@ async def snapshots(page) -> tuple[str, str]:
 
 async def testid_values(page) -> dict[str, list[str]]:
     rows = await page.locator("[data-testid]").evaluate_all(
-        "els => els.map(e => [e.getAttribute('data-testid'), (e.textContent || '').trim()])")
+        "els => els.map(e => [e.getAttribute('data-testid'), (e.textContent || '').trim()])"
+    )
     out: dict[str, list[str]] = {}
     for k, v in rows:
         out.setdefault(k, []).append(v)

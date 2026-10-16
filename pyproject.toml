@@ -41,6 +41,7 @@ pythonpath = ["."]
 testpaths = ["tests", "shop/tests"]
 asyncio_mode = "auto"
 markers = ["integration: needs the store and Chromium (slow)"]
+addopts = "-m 'not integration'"
 
 [tool.ruff]
 line-length = 120

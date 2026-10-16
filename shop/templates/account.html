@@ -2,7 +2,7 @@
 {% block title %}Account · Nebula Gear{% endblock %}
 {% block main %}
 <h1>Your account</h1>
-<h2>Orders</h2>
+<h2>Recent orders</h2>
 {% if orders %}
 <ul aria-label="Orders">
   {% for o in orders %}<li><a href="/order/{{ o.id }}">Order {{ o.id }}</a> · {{ '%.2f' | format(o.total) }}</li>{% endfor %}

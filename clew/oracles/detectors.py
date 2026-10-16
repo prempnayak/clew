@@ -45,8 +45,9 @@ def _ignored(ev: Event, cfg: dict) -> bool:
     return False
 
 
-def problems_from(events: list[Event], page_route: str, state_key: str, action_key: str,
-                  values: Values | None = None) -> list[Problem]:
+def problems_from(
+    events: list[Event], page_route: str, state_key: str, action_key: str, values: Values | None = None
+) -> list[Problem]:
     cfg = load("oracles")
     out: dict[str, Problem] = {}
     for ev in events:
@@ -55,12 +56,23 @@ def problems_from(events: list[Event], page_route: str, state_key: str, action_k
         if ev.kind == "http_5xx":
             route = route_key(ev.url)
             sig = signatures.http_5xx(ev.method, route, ev.status)
-            out.setdefault(sig, Problem(sig, "http_5xx", f"{ev.method} {route} returns HTTP {ev.status}", "new",
-                                        f"{ev.method} {ev.url} → {ev.status}", {"url": ev.url}))
+            out.setdefault(
+                sig,
+                Problem(
+                    sig,
+                    "http_5xx",
+                    f"{ev.method} {route} returns HTTP {ev.status}",
+                    "new",
+                    f"{ev.method} {ev.url} → {ev.status}",
+                    {"url": ev.url},
+                ),
+            )
         elif ev.kind == "pageerror":
             sig = signatures.pageerror(page_route, ev.message)
-            out.setdefault(sig, Problem(sig, "pageerror", f"Uncaught {ev.message.split(':')[0]} on {page_route}", "new",
-                                        ev.message))
+            out.setdefault(
+                sig,
+                Problem(sig, "pageerror", f"Uncaught {ev.message.split(':')[0]} on {page_route}", "new", ev.message),
+            )
         elif ev.kind == "crash":
             sig = f"crash|{page_route}"
             out.setdefault(sig, Problem(sig, "crash", f"Page crashed on {page_route}", "new", ev.message))
@@ -73,8 +85,12 @@ def problems_from(events: list[Event], page_route: str, state_key: str, action_k
             out.setdefault(sig, Problem(sig, "console_error", f"Console error on {page_route}", status, ev.message))
     for rule_id, msg in run_checks(page_route, values or {}, load("checks")):
         sig = signatures.rule(rule_id, state_key)
-        out.setdefault(sig, Problem(sig, "rule", f"Rule {rule_id} fails on {page_route}", "new", msg,
-                                    {"rule": rule_id, "values": values}))
+        out.setdefault(
+            sig,
+            Problem(
+                sig, "rule", f"Rule {rule_id} fails on {page_route}", "new", msg, {"rule": rule_id, "values": values}
+            ),
+        )
     return list(out.values())
 
 

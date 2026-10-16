@@ -24,11 +24,37 @@ LEASE = 120_000
 
 # -- map building -------------------------------------------------------------------------------------------
 def test_upsert_state_reports_new_then_known(graph):
-    r1 = graph.one("Q03", {"key": HOME, "route": "/", "auth": "out", "fingerprint": "x", "name": "Home",
-                           "url": "/", "agent": "e1", "elements": '["a"]', "entry": True, "now": 100})
+    r1 = graph.one(
+        "Q03",
+        {
+            "key": HOME,
+            "route": "/",
+            "auth": "out",
+            "fingerprint": "x",
+            "name": "Home",
+            "url": "/",
+            "agent": "e1",
+            "elements": '["a"]',
+            "entry": True,
+            "now": 100,
+        },
+    )
     assert r1["is_new"] is True and r1["read"] is False and r1["previous_elements"] is None
-    r2 = graph.one("Q03", {"key": HOME, "route": "/", "auth": "out", "fingerprint": "x", "name": "Home",
-                           "url": "/", "agent": "e2", "elements": '["a","b"]', "entry": False, "now": 200})
+    r2 = graph.one(
+        "Q03",
+        {
+            "key": HOME,
+            "route": "/",
+            "auth": "out",
+            "fingerprint": "x",
+            "name": "Home",
+            "url": "/",
+            "agent": "e2",
+            "elements": '["a","b"]',
+            "entry": False,
+            "now": 200,
+        },
+    )
     assert r2["is_new"] is False and r2["previous_elements"] == '["a"]'
     assert graph.one("Q40")["key"] == HOME
 
@@ -77,9 +103,20 @@ def test_variation_round_robin(graph):
 
 def test_jobs_claim_finish_only_by_claimant(graph):
     a = nebula_map(graph)
-    graph.run("Q12", {"action": a["login_valid"], "release": "v1", "sig": "http_5xx|GET /checkout|500",
-                      "kind": "http_5xx", "title": "t", "initial_status": "new", "severity": "P2",
-                      "evidence": "{}", "now": 50})
+    graph.run(
+        "Q12",
+        {
+            "action": a["login_valid"],
+            "release": "v1",
+            "sig": "http_5xx|GET /checkout|500",
+            "kind": "http_5xx",
+            "title": "t",
+            "initial_status": "new",
+            "severity": "P2",
+            "evidence": "{}",
+            "now": 50,
+        },
+    )
     job = graph.one("Q13", {"sig": "http_5xx|GET /checkout|500", "release": "v1", "payload": "{}", "now": 60})
     assert job["job"].startswith("J-")
     assert graph.one("Q13", {"sig": "http_5xx|GET /checkout|500", "release": "v1", "payload": "{}", "now": 61}) is None
@@ -94,12 +131,25 @@ def test_jobs_claim_finish_only_by_claimant(graph):
 def test_route_and_repro_steps(graph):
     a = nebula_map(graph)
     r = graph.one("Q10", {"from": HOME, "to": CART_COUPON})
-    assert r["actions"] in ([a["open_product"], a["add_to_cart"], a["apply_coupon"]],
-                            [a["search"], a["search_add"], a["apply_coupon"]])  # equal cost, either is right
+    assert r["actions"] in (
+        [a["open_product"], a["add_to_cart"], a["apply_coupon"]],
+        [a["search"], a["search_add"], a["apply_coupon"]],
+    )  # equal cost, either is right
     assert r["states"][0] == HOME and r["states"][-2:] == [CART_ITEMS, CART_COUPON] and r["cost"] == 3
-    graph.run("Q12", {"action": a["apply_again"], "release": "v1", "sig": f"rule|coupon_max_10pct|{CART_COUPON}",
-                      "kind": "rule", "title": "t", "initial_status": "new", "severity": "P1",
-                      "evidence": "{}", "now": 50})
+    graph.run(
+        "Q12",
+        {
+            "action": a["apply_again"],
+            "release": "v1",
+            "sig": f"rule|coupon_max_10pct|{CART_COUPON}",
+            "kind": "rule",
+            "title": "t",
+            "initial_status": "new",
+            "severity": "P1",
+            "evidence": "{}",
+            "now": 50,
+        },
+    )
     rep = graph.one("Q11", {"sig": f"rule|coupon_max_10pct|{CART_COUPON}"})
     assert rep["steps"][-2:] == [a["apply_coupon"], a["apply_again"]] and len(rep["steps"]) == 4
     details = graph.run("Q10b", {"keys": rep["steps"]})
@@ -110,14 +160,37 @@ def test_route_to_self_and_repro_on_entry(graph):
     a = nebula_map(graph)
     r = graph.one("Q10", {"from": HOME, "to": HOME})
     assert r is None  # SPpaths yields nothing for source = target; route.py treats that as "already there"
-    graph.run("Q12", {"action": a["open_product"], "release": "v1", "sig": "rule|price_is_number|x",
-                      "kind": "rule", "title": "t", "initial_status": "new", "severity": "P1",
-                      "evidence": "{}", "now": 50})
+    graph.run(
+        "Q12",
+        {
+            "action": a["open_product"],
+            "release": "v1",
+            "sig": "rule|price_is_number|x",
+            "kind": "rule",
+            "title": "t",
+            "initial_status": "new",
+            "severity": "P1",
+            "evidence": "{}",
+            "now": 50,
+        },
+    )
     rows = graph.run("Q11", {"sig": "rule|price_is_number|x"})
     assert rows == [{"steps": [a["open_product"]], "states": [HOME], "cost": 0.0}]
     # a bug triggered both on the entry page and deeper: the cheapest route comes first after sorting
-    graph.run("Q12", {"action": a["add_to_cart"], "release": "v1", "sig": "rule|price_is_number|x", "kind": "rule",
-                      "title": "t", "initial_status": "new", "severity": "P1", "evidence": "{}", "now": 51})
+    graph.run(
+        "Q12",
+        {
+            "action": a["add_to_cart"],
+            "release": "v1",
+            "sig": "rule|price_is_number|x",
+            "kind": "rule",
+            "title": "t",
+            "initial_status": "new",
+            "severity": "P1",
+            "evidence": "{}",
+            "now": 51,
+        },
+    )
     rows = sorted(graph.run("Q11", {"sig": "rule|price_is_number|x"}), key=lambda r: r["cost"])
     assert len(rows) == 2 and rows[0]["cost"] == 0.0
 
@@ -140,8 +213,20 @@ def test_importance_ranks_cart_high(graph):
 
 # -- bugs ---------------------------------------------------------------------------------------------------
 def _bug(graph, action_key, sig, release="v1", status="new", kind="pageerror", now=50):
-    return graph.one("Q12", {"action": action_key, "release": release, "sig": sig, "kind": kind, "title": "t",
-                             "initial_status": status, "severity": "P2", "evidence": "{}", "now": now})
+    return graph.one(
+        "Q12",
+        {
+            "action": action_key,
+            "release": release,
+            "sig": sig,
+            "kind": kind,
+            "title": "t",
+            "initial_status": status,
+            "severity": "P2",
+            "evidence": "{}",
+            "now": now,
+        },
+    )
 
 
 def test_bug_dedup_and_reporter_queue(graph):
@@ -156,7 +241,9 @@ def test_bug_dedup_and_reporter_queue(graph):
     graph.run("Q15", {"sig": "s1", "status": "confirmed", "severity": None, "title": None, "now": 104})
     c = graph.one("Q15c", {"statuses": ["confirmed"], "agent": "reporter", "now": 105, "lease_ms": LEASE})
     assert c["status"] == "confirmed"
-    assert graph.one("Q15b", {"sig": "s1", "number": 1, "url": "u", "title": "t", "body": "b", "now": 106})["issue"] == 1
+    assert (
+        graph.one("Q15b", {"sig": "s1", "number": 1, "url": "u", "title": "t", "body": "b", "now": 106})["issue"] == 1
+    )
     assert graph.one("Q15c", {"statuses": ["confirmed"], "agent": "reporter", "now": 107, "lease_ms": LEASE}) is None
     # still present in a new release -> needs_comment
     graph.run("Q16", {"release": "v2", "now": 200})
@@ -173,15 +260,32 @@ def test_similar_bugs_and_same_as(graph):
     _bug(graph, a["search_add"], "pageerror|/search?q|typeerror")
     sim = graph.run("Q36", {"sig": "pageerror|/search?q|typeerror"})
     assert sim[0]["sig"] == "regression|x" and sim[0]["same_trigger"] is True
-    assert graph.one("Q36b", {"sig": "pageerror|/search?q|typeerror", "other": "regression|x", "reason": "r",
-                              "now": 1})["same_as"] == "regression|x"
+    assert (
+        graph.one("Q36b", {"sig": "pageerror|/search?q|typeerror", "other": "regression|x", "reason": "r", "now": 1})[
+            "same_as"
+        ]
+        == "regression|x"
+    )
 
 
 def test_tool_call_audit(graph):
     a = nebula_map(graph)
     _bug(graph, a["login_valid"], "s1")
-    graph.run("Q29", {"id": "T-1", "tool": "file_issue", "agent": "reporter", "args": "{}", "query_ids": ["Q15b"],
-                      "ms": 3, "ok": True, "summary": "ok", "now": 500})
+    graph.run(
+        "Q29",
+        {
+            "id": "T-1",
+            "tool": "file_issue",
+            "agent": "reporter",
+            "args": "{}",
+            "query_ids": ["Q15b"],
+            "trace": "[]",
+            "ms": 3,
+            "ok": True,
+            "summary": "ok",
+            "now": 500,
+        },
+    )
     graph.run("Q29b", {"id": "T-1", "sig": "s1"})
     assert graph.one("Q29c", {"sig": "s1", "tools": ["file_issue"], "since": 400})["made"] is True
     assert graph.one("Q29c", {"sig": "s1", "tools": ["close_issue"], "since": 400})["made"] is False
@@ -192,8 +296,9 @@ def test_tool_call_audit(graph):
 def test_release_replays_regressions_and_fixes(graph):
     a = nebula_map(graph)
     _bug(graph, a["login_valid"], "http_5xx|GET /checkout|500", kind="http_5xx")
-    graph.run("Q15", {"sig": "http_5xx|GET /checkout|500", "status": "filed", "severity": None, "title": None,
-                      "now": 60})
+    graph.run(
+        "Q15", {"sig": "http_5xx|GET /checkout|500", "status": "filed", "severity": None, "title": None, "now": 60}
+    )
     assert graph.one("Q16", {"release": "v2", "now": 1000}) == {"previous": "v1", "current": "v2"}
     assert graph.one("Q16", {"release": "v2", "now": 1001}) is None
     assert graph.one("Q49") == {"previous": "v1", "current": "v2"}
@@ -212,9 +317,15 @@ def test_release_replays_regressions_and_fixes(graph):
     assert nxt["target"] in (a["open_product"], a["cart_icon"], a["search"])
 
     # v2 outcomes: R1 breaks, everything else as before, the rename heals to the same target
-    for k, t in [("open_product", PRODUCT), ("cart_icon", CART_EMPTY), ("search", SEARCH),
-                 ("add_to_cart", CART_ITEMS), ("apply_coupon", CART_COUPON), ("apply_again", CART_COUPON),
-                 ("checkout_empty", LOGIN_NEXT)]:
+    for k, t in [
+        ("open_product", PRODUCT),
+        ("cart_icon", CART_EMPTY),
+        ("search", SEARCH),
+        ("add_to_cart", CART_ITEMS),
+        ("apply_coupon", CART_COUPON),
+        ("apply_again", CART_COUPON),
+        ("checkout_empty", LOGIN_NEXT),
+    ]:
         lead(graph, a[k], t, release="v2", work_kind="replay")
     lead(graph, a["search_add"], SEARCH, release="v2", ok=False, work_kind="replay")
     lead(graph, a["login_valid"], CART_EMPTY, release="v2", work_kind="replay")  # B2 fixed: not a regression
@@ -223,9 +334,20 @@ def test_release_replays_regressions_and_fixes(graph):
     assert rows[0]["was_target"] == "Cart (with items)" and rows[0]["ok"] is False
     pages = {r["page"] for r in graph.run("Q35", {"action": a["search_add"]})}
     assert pages == set()  # the cart is reached through the product page, not search
-    graph.run("Q21", {"action": a["add_to_cart"], "new_name": "add to bag", "new_label": "Add to bag",
-                      "selector": "{}", "text": "Renamed 'Add to cart' -> 'Add to bag' in v2", "fact_id": "F-1",
-                      "agent": "e1", "release": "v2", "now": 1200})
+    graph.run(
+        "Q21",
+        {
+            "action": a["add_to_cart"],
+            "new_name": "add to bag",
+            "new_label": "Add to bag",
+            "selector": "{}",
+            "text": "Renamed 'Add to cart' -> 'Add to bag' in v2",
+            "fact_id": "F-1",
+            "agent": "e1",
+            "release": "v2",
+            "now": 1200,
+        },
+    )
     d = graph.run("Q10b", {"keys": [a["add_to_cart"]]})[0]
     assert d["aliases"] == ["add to cart"] and d["name"] == "add to bag"
     graph.run("Q22", {"sig": "http_5xx|GET /checkout|500", "release": "v2", "now": 1300})
@@ -240,10 +362,30 @@ def test_release_replays_regressions_and_fixes(graph):
 # -- memory, missions, sessions, UI ---------------------------------------------------------------------------
 def test_facts_missions_sessions(graph):
     a = nebula_map(graph)
-    graph.run("Q25", {"about": a["checkout_empty"], "kind": "precondition", "text": "Checkout requires login",
-                      "fact_id": "F-1", "agent": "e1", "release": "v1", "now": 10})
-    graph.run("Q25", {"about": a["checkout_empty"], "kind": "precondition", "text": "Checkout requires login",
-                      "fact_id": "F-2", "agent": "e2", "release": "v1", "now": 11})
+    graph.run(
+        "Q25",
+        {
+            "about": a["checkout_empty"],
+            "kind": "precondition",
+            "text": "Checkout requires login",
+            "fact_id": "F-1",
+            "agent": "e1",
+            "release": "v1",
+            "now": 10,
+        },
+    )
+    graph.run(
+        "Q25",
+        {
+            "about": a["checkout_empty"],
+            "kind": "precondition",
+            "text": "Checkout requires login",
+            "fact_id": "F-2",
+            "agent": "e2",
+            "release": "v1",
+            "now": 11,
+        },
+    )
     facts = graph.run("Q26", {"kinds": ["precondition"], "limit": 10})
     assert len(facts) == 1 and facts[0]["about"] == a["checkout_empty"]
     m = graph.one("Q27", {"state": CART_ITEMS, "text": "Test invalid coupon codes", "by": "human", "now": 5})
@@ -251,13 +393,42 @@ def test_facts_missions_sessions(graph):
     k = action(graph, CART_ITEMS, "apply", "Apply", kind="fill_submit", case="mission-1", priority=20)
     assert graph.one("Q27b", {"mission": "M-1", "keys": [k]})["linked"] == 1
     assert graph.run("Q50")[0]["actions"] == 1
-    s = graph.one("Q34a", {"release": "v1", "mode": "shared", "explorers": 4, "minutes": 10, "start_from": "fresh",
-                           "now": 1})
+    s = graph.one(
+        "Q34a", {"release": "v1", "mode": "shared", "explorers": 4, "minutes": 10, "start_from": "fresh", "now": 1}
+    )
     assert s["session"] == "S-1"
-    graph.run("Q08", {"action": a["cart_icon"], "run": "RUN-1", "agent": "e1", "session": "S-1", "release": "v1",
-                      "llm_calls": 1, "ok": True, "ms": 5, "work_kind": "explore", "instance": "{}", "now": 2})
-    graph.run("Q08", {"action": a["cart_icon"], "run": "RUN-2", "agent": "e2", "session": "S-1", "release": "v1",
-                      "llm_calls": 0, "ok": True, "ms": 5, "work_kind": "explore", "instance": "{}", "now": 3})
+    graph.run(
+        "Q08",
+        {
+            "action": a["cart_icon"],
+            "run": "RUN-1",
+            "agent": "e1",
+            "session": "S-1",
+            "release": "v1",
+            "llm_calls": 1,
+            "ok": True,
+            "ms": 5,
+            "work_kind": "explore",
+            "instance": "{}",
+            "now": 2,
+        },
+    )
+    graph.run(
+        "Q08",
+        {
+            "action": a["cart_icon"],
+            "run": "RUN-2",
+            "agent": "e2",
+            "session": "S-1",
+            "release": "v1",
+            "llm_calls": 0,
+            "ok": True,
+            "ms": 5,
+            "work_kind": "explore",
+            "instance": "{}",
+            "now": 3,
+        },
+    )
     assert graph.run("Q32", {"session": "S-1"}) == [{"action": a["cart_icon"], "agents": 2}]
     st = graph.one("Q51", {"session": "S-1"})
     assert st == {"runs": 2, "steps": 2, "explore_steps": 2, "unique_actions": 1, "llm_calls": 1}
@@ -269,8 +440,18 @@ def test_facts_missions_sessions(graph):
 
 def test_ui_reads(graph):
     a = nebula_map(graph)
-    graph.run("Q28", {"name": "explorer-1", "role": "explorer", "model": "none", "session": "S-1",
-                      "state": "working", "work": a["cart_icon"], "now": 5})
+    graph.run(
+        "Q28",
+        {
+            "name": "explorer-1",
+            "role": "explorer",
+            "model": "none",
+            "session": "S-1",
+            "state": "working",
+            "work": a["cart_icon"],
+            "now": 5,
+        },
+    )
     assert graph.run("Q43")[0]["name"] == "explorer-1"
     cov = graph.one("Q23")
     assert cov["states"] == 8 and cov["actions"] == 9 and cov["done"] == 9

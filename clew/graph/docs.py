@@ -18,8 +18,20 @@ def render() -> str:
     for q in qs.values():
         out.append(f"| [{q.id}](#{q.id.lower()}) | `{q.name}` | {q.purpose} | {q.callers} |")
     for q in qs.values():
-        out += ["", f"## {q.id}", "", f"**{q.name}**: {q.purpose}", "", f"Params: {q.params}", "",
-                f"Callers: {q.callers}", "", "```cypher", q.text, "```"]
+        out += [
+            "",
+            f"## {q.id}",
+            "",
+            f"**{q.name}**: {q.purpose}",
+            "",
+            f"Params: {q.params}",
+            "",
+            f"Callers: {q.callers}",
+            "",
+            "```cypher",
+            q.text,
+            "```",
+        ]
     return "\n".join(out) + "\n"
 
 

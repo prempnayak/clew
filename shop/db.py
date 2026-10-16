@@ -18,7 +18,7 @@ CREATE TABLE carts (id INTEGER PRIMARY KEY, session_id TEXT UNIQUE, user_id INTE
 CREATE TABLE cart_items (cart_id INTEGER, product_id INTEGER, qty INTEGER, PRIMARY KEY (cart_id, product_id));
 CREATE TABLE coupons (code TEXT PRIMARY KEY, percent REAL, active INTEGER, excludes_sale INTEGER);
 CREATE TABLE applied_coupons (cart_id INTEGER PRIMARY KEY, code TEXT, times_applied INTEGER);
-CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, total REAL, name TEXT, address TEXT, city TEXT,
+CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, session_id TEXT, total REAL, name TEXT, address TEXT, city TEXT,
                      created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE order_items (order_id INTEGER, product_id INTEGER, qty INTEGER, price REAL);
 CREATE TABLE wishlist (owner TEXT, product_id INTEGER, PRIMARY KEY (owner, product_id));

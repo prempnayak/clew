@@ -35,8 +35,20 @@ templates = Jinja2Templates(directory=HERE / "templates")
 
 COOKIE = "ng_session"
 ROUTES = {
-    "v1": ["/", "/search", "/search?q", "/category/:slug", "/product/:id", "/cart", "/login", "/login?next",
-           "/checkout", "/order/:id", "/account", "/wishlist"],
+    "v1": [
+        "/",
+        "/search",
+        "/search?q",
+        "/category/:slug",
+        "/product/:id",
+        "/cart",
+        "/login",
+        "/login?next",
+        "/checkout",
+        "/order/:id",
+        "/account",
+        "/wishlist",
+    ],
 }
 ROUTES["v2"] = ROUTES["v1"] + ["/gift-cards", "/cart?notice"]
 
@@ -111,8 +123,13 @@ def totals(c, cid: int) -> dict:
     ).fetchone()
     if applied:
         discount = round(eligible * applied["percent"] / 100 * applied["times_applied"], 2)
-    return {"lines": lines, "subtotal": subtotal, "discount": discount, "total": subtotal - discount,
-            "coupon": applied["code"] if applied else None}
+    return {
+        "lines": lines,
+        "subtotal": subtotal,
+        "discount": discount,
+        "total": subtotal - discount,
+        "coupon": applied["code"] if applied else None,
+    }
 
 
 def page(request: Request, name: str, c, **ctx) -> HTMLResponse:
@@ -318,8 +335,8 @@ def place_order(request: Request, name: str = Form(""), address: str = Form(""),
         per_item = t["subtotal"] / len(t["lines"])
         return page(request, "checkout.html", c, t=t, per_item=per_item, error="Please fill in every field.")
     oid = c.execute(
-        "INSERT INTO orders (user_id, total, name, address, city) VALUES (?, ?, ?, ?, ?)",
-        (user["id"], t["total"], name.strip()[:100], address.strip()[:200], city.strip()[:100]),
+        "INSERT INTO orders (user_id, session_id, total, name, address, city) VALUES (?, ?, ?, ?, ?, ?)",
+        (user["id"], sid, t["total"], name.strip()[:100], address.strip()[:200], city.strip()[:100]),
     ).lastrowid
     for line in t["lines"]:
         c.execute("INSERT INTO order_items VALUES (?, ?, ?, ?)", (oid, line["id"], line["qty"], line["price"]))
@@ -349,7 +366,10 @@ def account(request: Request):
     user = current_user(c, session_id(request))
     if not user:
         return RedirectResponse("/login?next=" + quote("/account"), status_code=303)
-    orders = c.execute("SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC", (user["id"],)).fetchall()
+    # Recent orders from this browser session, like the cart (a fresh browser always sees the same account page)
+    orders = c.execute(
+        "SELECT * FROM orders WHERE user_id = ? AND session_id = ? ORDER BY id DESC", (user["id"], session_id(request))
+    ).fetchall()
     return page(request, "account.html", c, orders=orders)
 
 
@@ -366,8 +386,9 @@ def api_wishlist(request: Request):
         "ORDER BY p.id",
         (session_id(request),),
     ).fetchall()
-    return [{"productId": r["id"], "name": r["name"], "image": {"url": r["image"]} if r["image"] else None}
-            for r in rows]
+    return [
+        {"productId": r["id"], "name": r["name"], "image": {"url": r["image"]} if r["image"] else None} for r in rows
+    ]
 
 
 @app.post("/wishlist/add")

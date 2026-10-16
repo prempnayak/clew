@@ -111,8 +111,15 @@ def extract(page_snapshot: str, page_url: str, scope: dict | None = None) -> lis
                 by_identity[ident].count += 1
                 continue
             path = urlsplit(url)
-            c = Candidate(next_id(), "link", n.name, "click", target, region,
-                          href=path.path + (f"?{path.query}" if path.query else ""))
+            c = Candidate(
+                next_id(),
+                "link",
+                n.name,
+                "click",
+                target,
+                region,
+                href=path.path + (f"?{path.query}" if path.query else ""),
+            )
         else:
             if not n.name:
                 continue
@@ -123,8 +130,15 @@ def extract(page_snapshot: str, page_url: str, scope: dict | None = None) -> lis
                 if ident in by_identity:
                     pending_fields = []
                     continue
-                c = Candidate(next_id(), "form", n.name, "fill_submit", fields_key, region,
-                              field_ids=[f.id for f in pending_fields])
+                c = Candidate(
+                    next_id(),
+                    "form",
+                    n.name,
+                    "fill_submit",
+                    fields_key,
+                    region,
+                    field_ids=[f.id for f in pending_fields],
+                )
                 pending_fields = []
             else:
                 pending_fields = []

@@ -25,8 +25,9 @@ class Observer:
 
     def _response(self, resp) -> None:
         if resp.status >= 500 and self._same_origin(resp.url):
-            self.events.append(Event("http_5xx", f"HTTP {resp.status}", url=resp.url, method=resp.request.method,
-                                     status=resp.status))
+            self.events.append(
+                Event("http_5xx", f"HTTP {resp.status}", url=resp.url, method=resp.request.method, status=resp.status)
+            )
 
     def reset(self) -> None:
         self.events = []

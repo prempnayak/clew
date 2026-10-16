@@ -42,4 +42,8 @@ def nav_timeout(state_key: str, action_key: str) -> str:
 
 
 def regression(action_key: str) -> str:
-    return f"regression|{action_key}"
+    """`regression|<route>|<hash8>#<role:target>`: the action key without its auth part, so the same broken
+    button seen logged in and logged out is one regression (both actions become its triggers)."""
+    state, _, rest = action_key.partition("#")
+    route, _auth, h = state.rsplit("|", 2)
+    return f"regression|{route}|{h}#{rest}"

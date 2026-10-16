@@ -185,8 +185,10 @@ def default_name(route: str, auth: str, main_snapshot: str) -> str:
         base = h1
     quals = []
     tokens = structure_tokens(main_snapshot)
-    if any(t.endswith(":empty") for t in tokens) or (not any(t.endswith(":some") for t in tokens) and any(
-        "empty" in (n.text or n.name).lower() for n in nodes if n.role in ("paragraph", "text", "status"))):
+    if any(t.endswith(":empty") for t in tokens) or (
+        not any(t.endswith(":some") for t in tokens)
+        and any("empty" in (n.text or n.name).lower() for n in nodes if n.role in ("paragraph", "text", "status"))
+    ):
         quals.append("empty")
     names = [n.name for n in nodes if n.role in ("button", "link")]
     for hint in load("fingerprint").get("name_hints", []):

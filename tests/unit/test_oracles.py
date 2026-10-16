@@ -12,10 +12,14 @@ from clew.oracles.detectors import Event, problems_from
 @pytest.mark.parametrize(
     "msg, expected",
     [
-        ("TypeError: Cannot read properties of null (reading 'url')",
-         "typeerror: cannot read properties of null (reading '#')"),
-        ("TypeError: Cannot read properties of undefined (reading 'productId')",
-         "typeerror: cannot read properties of undefined (reading '#')"),
+        (
+            "TypeError: Cannot read properties of null (reading 'url')",
+            "typeerror: cannot read properties of null (reading '#')",
+        ),
+        (
+            "TypeError: Cannot read properties of undefined (reading 'productId')",
+            "typeerror: cannot read properties of undefined (reading '#')",
+        ),
         ("Error at item 12 id deadbeefcafe", "error at item # id #"),
     ],
 )
@@ -57,6 +61,13 @@ def test_detectors():
 
 
 def test_rule_problem_signature():
-    ps = problems_from([], "/cart", "/cart|out|7e21f0aa", "a", {"subtotal": ["120.00"], "discount": ["24.00"],
-                                                                 "total": ["96.00"]})
+    ps = problems_from(
+        [], "/cart", "/cart|out|7e21f0aa", "a", {"subtotal": ["120.00"], "discount": ["24.00"], "total": ["96.00"]}
+    )
     assert [p.sig for p in ps] == ["rule|coupon_max_10pct|/cart|7e21f0aa"]
+
+
+def test_regression_signature_ignores_auth():
+    a = signatures.regression("/search?q|out|cdf65eef#button:add to cart")
+    b = signatures.regression("/search?q|in|cdf65eef#button:add to cart")
+    assert a == b == "regression|/search?q|cdf65eef#button:add to cart"

@@ -45,11 +45,22 @@ async def capture(browser, release: str) -> None:
     ctx = await browser.new_context()
     page = await ctx.new_page()
     simple = {
-        "home_out": "/", "search_blank": "/search", "search_telescope": "/search?q=telescope", "search_star": "/search?q=star",
-        "search_none": "/search?q=zzzz", "category_maps": "/category/maps", "category_telescopes":
-        "/category/telescopes", "product_1": "/product/1", "product_2": "/product/2", "product_7": "/product/7",
-        "product_8": "/product/8", "product_9": "/product/9", "cart_empty_out": "/cart", "login": "/login",
-        "login_next": "/login?next=/checkout", "wishlist_empty": "/wishlist",
+        "home_out": "/",
+        "search_blank": "/search",
+        "search_telescope": "/search?q=telescope",
+        "search_star": "/search?q=star",
+        "search_none": "/search?q=zzzz",
+        "category_maps": "/category/maps",
+        "category_telescopes": "/category/telescopes",
+        "product_1": "/product/1",
+        "product_2": "/product/2",
+        "product_7": "/product/7",
+        "product_8": "/product/8",
+        "product_9": "/product/9",
+        "cart_empty_out": "/cart",
+        "login": "/login",
+        "login_next": "/login?next=/checkout",
+        "wishlist_empty": "/wishlist",
     }
     if release == "v2":
         simple["gift_cards"] = "/gift-cards"

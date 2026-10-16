@@ -25,20 +25,25 @@ class Located(BaseModel):
     reason: str = ""
 
 
-def heal_candidate(role: str, old_name: str, target_name: str, candidates: list[Candidate],
-                   taken: set[str]) -> tuple[Candidate | None, int]:
+def heal_candidate(
+    role: str, old_name: str, target_name: str, candidates: list[Candidate], taken: set[str]
+) -> tuple[Candidate | None, int]:
     """(best candidate or None, LLM calls made). `taken` holds normalized names of the page's other actions."""
     want_role = "form" if role == "form" else role
     pool = [c for c in candidates if c.role == want_role and normalize(c.name) not in taken]
-    scored = sorted(((difflib.SequenceMatcher(None, normalize(old_name), normalize(c.name)).ratio(), c)
-                     for c in pool), key=lambda x: -x[0])
+    scored = sorted(
+        ((difflib.SequenceMatcher(None, normalize(old_name), normalize(c.name)).ratio(), c) for c in pool),
+        key=lambda x: -x[0],
+    )
     scored = [(s, c) for s, c in scored if s >= 0.5]
     if not scored:
         return None, 0
     if len(scored) > 1 and scored[0][0] - scored[1][0] < 0.1 and llm.enabled("locate"):
-        listing = "\n".join(f"- {c.id} {c.role} \"{c.name}\"" for _, c in scored)
-        prompt = (f'Saved step: role={role}, name="{old_name}", it used to lead to "{target_name}".\n'
-                  f"Candidates on the page now:\n{listing}")
+        listing = "\n".join(f'- {c.id} {c.role} "{c.name}"' for _, c in scored)
+        prompt = (
+            f'Saved step: role={role}, name="{old_name}", it used to lead to "{target_name}".\n'
+            f"Candidates on the page now:\n{listing}"
+        )
         try:
             out = llm.generate("locate", SYSTEM, prompt, Located)
             chosen = next((c for _, c in scored if c.id == out.candidate_id), None)
