@@ -8,7 +8,7 @@
 | Hackathon | Graph Hacks: Context for AI Agents (WeMakeDevs × FalkorDB) |
 | Window | Oct 15, 2026 12:01 AM IST → Oct 18, 2026 11:59 PM IST |
 | Tracks entered | Track 1 *Agents That Act on Connected Data* + Track 2 *Agent Memory and Coordination* |
-| Status | Plan only, no code yet. Written Fri Oct 16, 2026: **three working days left** (Fri, Sat, Sun) |
+| Status | **Built (Sat Oct 17, 2026).** S1–S4 verified in Docker; see `docs/progress.md` for what's left and `docs/decisions.md` for every place where the build differs from this plan (fresh browser per work item, session-scoped carts, `LEADS_TO.via`, stricter Q19, the `openai` LLM backend, …). Originally written Fri Oct 16 as a plan |
 | Read with | `CLAUDE.md` at the repo root (operating rules for Claude Code) |
 | Name | **Clew**: the ball of thread Ariadne gave Theseus to find his way through the labyrinth, and the origin of the word "clue". The swarm leaves that thread through the app, so anyone can follow it back to a bug. "Nebula Gear" is the demo store we build and test |
 | Related | Causeway (idea #1) is a separate project. If your team built it, Section 19.5 lists what you can reuse |

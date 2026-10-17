@@ -55,3 +55,8 @@ One dated line per verified fact or design change. When the plan (`docs/handoff.
   - no other regressions.
   
   Qwen called `file_issue` with a truncated signature; the tool refused it and the template writer filed it.
+- **CI runs every test against the pinned FalkorDB image, not the embedded build.** The CI run failed for two reasons, both reproduced in a Linux container:
+  1. `ruff format --check` flagged a test appended after formatting.
+  2. `falkordblite`'s bundled graph module does not load on Linux (`falkordb.so: not a dynamic executable`), so all 25 graph-backed tests errored at server start.
+  
+  CI now sets `FALKORDB_EMBEDDED=0` and points the suite at the `falkordb/falkordb:v4.22.1` service; 94 tests pass that way on Linux. `falkordblite` stays the default for local runs on macOS.

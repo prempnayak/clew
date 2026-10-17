@@ -12,10 +12,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
       - run: uv run ruff check . && uv run ruff format --check .
-      - name: unit tests on embedded FalkorDB
+      # all tests run against the pinned FalkorDB image (the service above); the embedded falkordblite build
+      # is for local runs only: its graph module fails to load on Linux runners
+      - name: tests on the pinned FalkorDB image (V1)
+        env: {FALKORDB_EMBEDDED: "0", FALKORDB_HOST: localhost, FALKORDB_PORT: "6379"}
         run: uv run pytest -q
-      - name: query tests on the pinned Docker image (V1)
-        run: FALKORDB_EMBEDDED=0 FALKORDB_HOST=localhost FALKORDB_PORT=6379 uv run pytest -q tests/unit/test_queries.py
   ui:
     runs-on: ubuntu-latest
     steps:

@@ -111,11 +111,30 @@ def test_template_writer_files_a_regression(graph):
 
     a, t = setup(graph)
     graph.run("Q16", {"release": "v2", "now": 100})
-    ev = {"message": "TypeError: x", "label": "Add to cart", "was_target": "Cart (with items)", "previous": "v1",
-          "release": "v2", "now_target": "Search results", "affected_pages": ["Cart (with items)"]}
+    ev = {
+        "message": "TypeError: x",
+        "label": "Add to cart",
+        "was_target": "Cart (with items)",
+        "previous": "v1",
+        "release": "v2",
+        "now_target": "Search results",
+        "affected_pages": ["Cart (with items)"],
+    }
     sig = "regression|/search?q|ffffffff#button:add to cart"
-    graph.run("Q12", {"action": a["search_add"], "release": "v2", "sig": sig, "kind": "regression", "title": "t",
-                      "initial_status": "confirmed", "severity": "P2", "evidence": json.dumps(ev), "now": 101})
+    graph.run(
+        "Q12",
+        {
+            "action": a["search_add"],
+            "release": "v2",
+            "sig": sig,
+            "kind": "regression",
+            "title": "t",
+            "initial_status": "confirmed",
+            "severity": "P2",
+            "evidence": json.dumps(ev),
+            "now": 101,
+        },
+    )
     deterministic_turn(t, sig, "confirmed", "v2")
     b = graph.one("Q38", {"sig": sig})
     assert b["status"] == "filed" and "release diff of v1 → v2" in b["issue_body"]
