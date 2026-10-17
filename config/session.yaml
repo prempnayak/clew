@@ -7,3 +7,4 @@ action_timeout_ms: 5000
 settle_ms: 5000
 defaults: {explorers: 4, minutes: 10, mode: shared}
 hosted: {max_explorers: 4, max_minutes: 10, daily_sessions: 30}
+strategist_every_s: 180

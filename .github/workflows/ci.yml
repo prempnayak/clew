@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      falkordb:
+        image: falkordb/falkordb:v4.22.1
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      - name: unit tests on embedded FalkorDB
+        run: uv run pytest -q
+      - name: query tests on the pinned Docker image (V1)
+        run: FALKORDB_EMBEDDED=0 FALKORDB_HOST=localhost FALKORDB_PORT=6379 uv run pytest -q tests/unit/test_queries.py
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: cd ui && npm ci && npm run typecheck && npm run build

@@ -476,3 +476,26 @@ def test_copy_and_reset(graph, db):
     finally:
         dest.delete()
     assert CART_EMPTY  # keep the import used
+
+
+def test_baseline_reads(graph):
+    a = nebula_map(graph)
+    graph.run(
+        "Q08",
+        {
+            "action": a["cart_icon"],
+            "run": "RUN-1",
+            "agent": "e1",
+            "session": "S-1",
+            "release": "v1",
+            "llm_calls": 0,
+            "ok": True,
+            "ms": 5,
+            "work_kind": "explore",
+            "instance": "{}",
+            "now": 2,
+        },
+    )
+    assert graph.run("Q56", {"session": "S-1"}) == [{"agent": "e1", "action": a["cart_icon"], "at": 2}]
+    graph.run("Q04", {"state": HOME, "name": None, "actions": [], "now": 1})
+    assert graph.one("Q57") == {"reads": 7, "states": 8}  # Q04 marks a page read

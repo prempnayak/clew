@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import random
 import secrets
+import threading
 
 import docker
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -30,6 +31,9 @@ PASS_ENV = [
     "GOOGLE_CLOUD_PROJECT",
     "GOOGLE_CLOUD_LOCATION",
     "GOOGLE_API_KEY",
+    "OPENAI_BASE_URL",
+    "OPENAI_API_KEY",
+    "LLM_TIMEOUT_S",
     "CLEW_SCREENSHOTS",
 ]
 RESTARTABLE = {"falkordb", "mcp", "api", "scheduler", "reporter", "strategist"}
@@ -75,6 +79,7 @@ def scale(req: Scale) -> dict:
             ipc_mode="host",
             init=True,
             restart_policy={"Name": "unless-stopped"},
+            extra_hosts={"host.docker.internal": "host-gateway"},  # a local model server on the host
             labels={LABEL: "explorer", "clew.session": req.session or ""},
             volumes={
                 os.environ.get("SCREENSHOT_VOLUME", f"{PROJECT}_screenshots"): {
@@ -96,7 +101,10 @@ def kill() -> dict:
         return {"ok": False, "error": "no explorers running"}
     victim = random.choice(running)
     victim.kill()
-    return {"ok": True, "killed": victim.name}
+    # Docker treats `docker kill` as a manual stop, so the restart policy does not bring the container back
+    # (V12). Start it again after a pause: the new process takes a new agent name from the Redis counter.
+    threading.Timer(float(os.environ.get("RESTART_AFTER_KILL_S", "5")), victim.start).start()
+    return {"ok": True, "killed": victim.name, "restarts_in_s": float(os.environ.get("RESTART_AFTER_KILL_S", "5"))}
 
 
 class Restart(BaseModel):

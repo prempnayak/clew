@@ -7,6 +7,7 @@ x-app: &app
   restart: unless-stopped
   depends_on: {falkordb: {condition: service_healthy}}
   volumes: ["screenshots:/data/screenshots"]
+  extra_hosts: ["host.docker.internal:host-gateway"]   # LLM_BACKEND=openai with a model server on the host
 
 services:
   falkordb:
@@ -30,6 +31,7 @@ services:
   api:        {<<: *app, command: ["uvicorn", "clew.api.app:app", "--host", "0.0.0.0", "--port", "8081"]}
   scheduler:  {<<: *app, command: ["python", "-m", "clew.scheduler.watcher"]}
   reporter:   {<<: *app, command: ["python", "-m", "clew.reporter.runner"], depends_on: {falkordb: {condition: service_healthy}, mcp: {condition: service_started}}}
+  strategist: {<<: *app, command: ["python", "-m", "clew.strategist.runner"], profiles: ["strategist"]}
   controller:
     <<: *app
     command: ["python", "-m", "clew.controller.app"]
@@ -41,6 +43,7 @@ services:
     env_file: .env
     ipc: host
     init: true
+    extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: ["screenshots:/data/screenshots"]
     depends_on: {falkordb: {condition: service_healthy}, shop: {condition: service_started}}
     deploy: {replicas: 0}

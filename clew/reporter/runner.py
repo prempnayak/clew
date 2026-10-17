@@ -139,7 +139,6 @@ async def adk_turn(sig: str, case: str, release: str) -> None:
     from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
     from google.genai import types
 
-    cfg = load("models")["reporter"]
     toolset = McpToolset(
         connection_params=StreamableHTTPConnectionParams(
             url=env("CLEW_MCP_URL", "http://mcp:8000/mcp"),
@@ -161,17 +160,19 @@ async def adk_turn(sig: str, case: str, release: str) -> None:
     )
     agent = LlmAgent(
         name="reporter",
-        model=cfg["model"],
-        instruction=INSTRUCTION.replace("{release}", release),
+        model=llm.adk_model("reporter"),  # Gemini id, or LiteLLM for an OpenAI-compatible server
+        # a callable is used verbatim: ADK would otherwise read {agent}, {run}, ... as session-state keys
+        instruction=lambda _ctx: INSTRUCTION.replace("{release}", release),
         tools=[toolset],
-        generate_content_config=types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(thinking_level=cfg.get("thinking_level", "low").upper())
-        ),
+        generate_content_config=llm.adk_config("reporter"),
     )
     sessions = InMemorySessionService()  # fresh per bug: no hidden memory between bugs
     runner = Runner(agent=agent, app_name="clew", session_service=sessions)
     session = await sessions.create_session(app_name="clew", user_id=AGENT)
-    text = f"Bug {sig} needs: {case}. Current release: {release}."
+    finish = " or ".join(EXPECTED[case])
+    text = (
+        f"Bug {sig} needs: {case}. Current release: {release}. Gather what you need, then finish by calling {finish}."
+    )
     msg = types.Content(role="user", parts=[types.Part(text=text)])
     try:
         async for event in runner.run_async(user_id=AGENT, session_id=session.id, new_message=msg):
@@ -192,6 +193,11 @@ class Reporter:
     def release(self) -> str:
         r = self.graph.one("Q37", read_only=True)
         return r["release"] if r else "v1"
+
+    def made(self, sig: str, case: str, since: int) -> bool:
+        """Q29c: did a successful call of the expected tool happen for this bug since `since`?"""
+        row = self.graph.one("Q29c", {"sig": sig, "tools": EXPECTED[case], "since": since})
+        return bool(row and row["made"])
 
     async def run_once(self) -> bool:
         rows = self.graph.run(
@@ -215,11 +221,15 @@ class Reporter:
             self.graph.publish("job.updated", kind="confirm", target=sig)
         elif case in EXPECTED:
             if llm.enabled("reporter"):
-                await adk_turn(sig, case, release)
-            else:
+                try:
+                    await adk_turn(sig, case, release)
+                except Exception as e:  # noqa: BLE001 - the template writer below takes over
+                    log.warning(kv(sig=sig, adk_error=str(e)[:200]))
+            if not self.made(sig, case, started):
+                # LLM off, or the model ended its turn without the closing call: the template writer
+                # finishes this claim with the same audited tools (a small local model sometimes stops early)
                 deterministic_turn(self.tools, sig, case, release)
-            made = self.graph.one("Q29c", {"sig": sig, "tools": EXPECTED[case], "since": started})
-            if not (made and made["made"]):
+            if not self.made(sig, case, started):
                 log.info(kv(sig=sig, case=case, note="expected tool call not made; the claim will lapse"))
                 return True
         self.graph.run("Q15d", {"sig": sig, "agent": AGENT, "now": now_ms()})
@@ -234,7 +244,7 @@ class Reporter:
                 {
                     "name": AGENT,
                     "role": "reporter",
-                    "model": load("models")["reporter"]["model"] if llm.enabled("reporter") else "deterministic",
+                    "model": llm.model_name("reporter"),
                     "session": None,
                     "state": "running",
                     "work": None,

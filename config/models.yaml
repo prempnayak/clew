@@ -1,8 +1,20 @@
-# Model IDs and thinking levels (CLAUDE.md rule 8). Confirm IDs in the Model Garden (V8).
-page_reader:     {model: gemini-3.5-flash-lite, thinking_level: low}
-locate:          {model: gemini-3.5-flash-lite, thinking_level: low}
-judge:           {model: gemini-3.8-flash, thinking_level: low, enabled: false}
-reporter:        {model: gemini-3.8-flash, thinking_level: low}
-strategist:      {model: gemini-3.8-flash, thinking_level: medium, enabled: false}
-release_analyst: {model: gemini-3.5-flash-lite, thinking_level: low, enabled: false}
-# temperature: not set (Gemini 3 default, as Google recommends)
+# Model IDs and thinking levels per backend (CLAUDE.md rule 8). LLM_BACKEND picks the profile:
+#   vertex | gemini_api → gemini;  openai → openai (any OpenAI-compatible server: LM Studio, vLLM, Ollama);
+#   off → no LLM at all (deterministic page reader and Reporter).
+# Confirm Gemini IDs in the Model Garden (V8). Temperature is never set (Gemini 3 default, as Google recommends).
+gemini:
+  page_reader:     {model: gemini-3.5-flash-lite, thinking_level: low}
+  locate:          {model: gemini-3.5-flash-lite, thinking_level: low}
+  judge:           {model: gemini-3.8-flash, thinking_level: low}
+  reporter:        {model: gemini-3.8-flash, thinking_level: low}
+  strategist:      {model: gemini-3.8-flash, thinking_level: medium}
+  release_analyst: {model: gemini-3.5-flash-lite, thinking_level: low}
+openai:          # OPENAI_BASE_URL (e.g. http://localhost:1234/v1 for LM Studio) and OPENAI_API_KEY
+  page_reader:     {model: qwen/qwen3-8b}
+  locate:          {model: qwen/qwen3-8b}
+  judge:           {model: qwen/qwen3-8b}
+  reporter:        {model: qwen/qwen3-8b}
+  strategist:      {model: qwen/qwen3-8b}
+  release_analyst: {model: qwen/qwen3-8b}
+# Uses switched off regardless of backend (cut list, handoff §19.4)
+disabled: [judge]

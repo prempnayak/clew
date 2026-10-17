@@ -95,7 +95,7 @@ class Tools:
             "issue": b["issue"],
             "evidence": ev,
             "found_by": {"agent": ev.get("agent"), "run": ev.get("run"), "step": ev.get("step")},
-            "summary": f"{b['kind']} {b['status']}",
+            "summary": b["title"],
         }
 
     def repro(self, sig: str) -> ReproOut | None:
