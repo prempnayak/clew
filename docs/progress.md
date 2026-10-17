@@ -18,9 +18,12 @@ Last updated: 2026-10-17 (Sat) afternoon.
   - S3: restart-all keeps the map; mission done with 0 page reads;
   - S4: R1 filed 2 min 44 s after the deploy; rename healed; B2 fixed and closed; no false regressions, after replays walk the original route.
 
-## In progress
+- **S5 measured** (`eval/results/baseline.md`, README table): with the shared map, 215 unique actions vs 93, 0 duplicated actions vs 93, 27 page reads vs 84, and bugs found about 3× faster; B4 was found only with the shared map.
+- **CI fixed:** all tests run against the FalkorDB service image (the embedded build doesn't load on Linux).
 
-- S5 baseline (`eval/run_baseline.py --runs 3 --minutes 4`, deterministic reader in both modes) → `eval/results/baseline.md`, then the README table.
+## Development status
+
+All code work that doesn't need a human is done. The stack is running locally with `LLM_BACKEND=openai` (LM Studio).
 
 ## Needs a human
 
