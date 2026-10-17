@@ -145,18 +145,28 @@ FalkorDB behaviours we hit (in [`docs/decisions.md`](docs/decisions.md)):
 
 ### Results we measured
 
-These are local runs. We only report what we measured; `make score` and `make baseline` produce these tables.
+These are local runs on one laptop, scored with `make score` against the hidden answer key. We only report what we measured.
 
-- **S1, deterministic page reader (no LLM), 4 explorers:** B1, B2 and B3 were found, confirmed in a fresh session and filed within about 70 s. B4 followed at about 3.5 min (variation mode). Zero duplicate executions (Q32). No decoy was filed.
-- **S1 with a local LLM** (Qwen3-8B, 4-bit, on LM Studio): 28 page reads, about 3–18 s each. The Reporter filed issues through ADK → MCP → GitHub (dry run).
-- **S2 in Docker:** explorer-1 was killed holding a claim at 06:51:34. explorer-5 claimed the same action at 06:53:34, when the lease expired. The container came back as explorer-6.
-- **S4, deterministic, 4 explorers:**
-  - 203 replay jobs and 4 verify_fix jobs were queued on deploy;
-  - R1 was flagged as a regression;
-  - the rename was healed with a rename Fact;
+**Docker stack, 4 explorer containers, local LLM** (Qwen3-8B 4-bit on LM Studio, used for the page reader and the Reporter):
+
+| Run | Recall | Decoys filed | Duplicate executions | Route coverage | Time to first sighting |
+|---|---|---|---|---|---|
+| S1, session 1 (10 min) | 4/4 | 0 | 0 | 11/12 | B3 39.5 s · B1 67.6 s · B4 141.8 s · B2 367.3 s |
+| S1, repeat (10 min) | 4/4 | 0 | 0 | 11/12 | B3 43.1 s · B1 91.8 s · B2 194.1 s · B4 304.3 s |
+
+- **S2:** explorer-1 was killed holding a claim at 06:51:34. explorer-5 claimed the same action at 06:53:34, when the 120 s lease expired. The container rejoined as explorer-6.
+- **S3:** after `make restart-all` (FalkorDB included), the map, bugs and session were intact.
+  - The next session's mission ("Test invalid coupon codes", 4 cases) was claimed by 4 explorers in the same second and done within 5 s.
+  - It needed **0 page-reader calls**, against 25 LLM page reads for 194 newly tested actions in session 1.
+- **S4:** after deploying v2:
+  - **188 replay jobs + 4 verify_fix jobs** were queued;
+  - R1 was detected **2 min 44 s after the deploy** and filed as one regression (logged-out and logged-in variants merged), with the v1 route and the flows through it;
+  - "Add to cart" → "Add to bag" was healed, not filed;
   - B2 was verified fixed and its issue closed;
-  - B1, B3 and B4 got "still present in v2";
-  - the Gift cards page was discovered.
+  - B1, B3 and B4 were commented "still present";
+  - Gift cards and the v2 empty-cart notice were discovered;
+  - no false regressions.
+- **Deterministic reader (`LLM_BACKEND=off`), 4 explorers in one process:** B1, B2 and B3 were filed within about 70 s and B4 at about 3.5 min.
 
 S5 table: see [`eval/results/baseline.md`](eval/results/baseline.md) once `make baseline` has run.
 

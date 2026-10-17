@@ -83,11 +83,16 @@ def write_issue(tools: Tools, sig: str, release: str) -> tuple[str, str, list[st
     elif kind == "rule":
         title = f"{ev.get('rule', 'rule')} fails on {', '.join(bug['pages'][:1]) or 'a page'}"
     pages = ", ".join(bug["pages"])
+    found_by = (
+        f"{ev.get('agent')} (run {ev.get('run')}, step {ev.get('step')})"
+        if ev.get("run")
+        else f"the release diff of {ev.get('previous')} → {ev.get('release')} (Q19)"
+    )
+    severity_reason = {"rule": "wrong money or data", "regression": "a flow that worked in the previous release"}
     lines = [
         f"**Summary:** {bug['title']} (seen on {pages}).",
-        f"**Severity:** {bug['severity']} ({'wrong money or data' if bug['severity'] == 'P1' and kind == 'rule' else 'see evidence'})",
-        f"**Release:** {release} · **Found by:** {ev.get('agent')} (run {ev.get('run')}, step {ev.get('step')}) · "
-        "**Confirmed:** replayed in a fresh session",
+        f"**Severity:** {bug['severity']} ({severity_reason.get(kind, 'a crash or server error on ' + pages)})",
+        f"**Release:** {release} · **Found by:** {found_by} · **Confirmed:** replayed in a fresh session",
         "",
         "**Steps to reproduce** (shortest known route):",
         steps.get("text", "(no route)") if steps.get("ok") else "(no route)",

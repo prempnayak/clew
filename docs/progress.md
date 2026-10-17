@@ -1,29 +1,36 @@
 # Build progress (kept current so anyone can pick up where the last session stopped)
 
-Last updated: 2026-10-17 (Sat), during the Claude Code build session.
+Last updated: 2026-10-17 (Sat) afternoon.
 
-## Done (all committed and pushed to origin/main)
+## Done (committed and pushed to origin/main)
 
-- **M0/M1:** store, query library Q01–Q55 (V1 on 4.18.3 + 4.22.1), fingerprint and extraction on 54 real snapshots (V2), explorer worker, oracles, page reader.
-- **M2:** MCP server and audited tools, Reporter, GitHub client (dry run), release watcher, regression pipeline. Locally: 4 explorers confirm and file B1–B4 with 0 duplicates; S4 run files R1, heals the rename, verifies B2 fixed, finds Gift cards. Integration test passes (`make test-integration`, ~6.5 min).
-- **M3:** API, SSE, Show Cypher, controller, CLI, war-room UI, Dockerfiles, Compose, Caddy, Makefile. Images build (V3 ✅: Playwright 1.63.0 image); the answer key is absent from the shop and app images; `make up` + `make seed` work (V13: data dir `/var/lib/falkordb/data`).
+- **M0–M3:**
+  - store (v1/v2, bugs, decoys, hooks);
+  - query library (69 files) with tests: V1 on 4.18.3 and 4.22.1;
+  - fingerprint (V2), explorer, oracles, page reader;
+  - MCP server, Reporter, watcher, regression pipeline;
+  - API, UI, controller, CLI, Docker, Compose, Caddy, Makefile.
+- **Local LLM backend** (`LLM_BACKEND=openai`, LM Studio + Qwen3-8B) for the page reader, locate and the ADK agents (via LiteLLM).
+- **Scorer** (`make score`), **S5 script** (`make baseline`), **Strategist** (Compose profile `strategist`), **CI** workflow, **README**, `docs/graph-model.md`, `docs/demo-script.md`.
+- **Verified in Docker with the local LLM:**
+  - S1 twice: 4/4 recall, 0 decoys, 0 duplicates;
+  - S2: lease handover at exactly 120 s, killed container rejoins;
+  - S3: restart-all keeps the map; mission done with 0 page reads;
+  - S4: R1 filed 2 min 44 s after the deploy; rename healed; B2 fixed and closed; no false regressions, after replays walk the original route.
 
-## Next (in order)
+## In progress
 
-1. In Docker: `make session N=4 MIN=5` → check the controller scales explorers (V12), then `make kill-explorer` (S2), `make restart-all` + mission (S3), `make deploy-v2` (S4). Local `.env` uses host ports 6391/3001/8095/8010/8082 (UI at http://localhost:8082).
-2. Scorer (`scorer/score.py`: planted_bugs.yaml + /__routes + Q33/Q52/Q32) and `eval/run_baseline.py` (S5 shared vs isolated).
-3. README (setup, graph model, Cypher list, tracks, AI disclosure), `docs/graph-model.md`; `make docs` already generates `docs/cypher.md`.
-4. Optional: Strategist runner (cut list #1; missions use the deterministic fallback in `clew/api/ops.py`), CI workflow.
+- S5 baseline (`eval/run_baseline.py --runs 3 --minutes 4`, deterministic reader in both modes) → `eval/results/baseline.md`, then the README table.
 
 ## Needs a human
 
-- Gemini credentials (V7, V8): set `LLM_BACKEND=vertex` + project, or `gemini_api` + key. Until then everything runs on the deterministic reader and writer.
-- GitHub token for real issues (V11): fine-grained, Issues on the issues repo only; `make github-labels`.
-- GCP VM deploy (§21), demo video, blog, submission form, Discord questions (V14).
+- **Gemini** (V7, V8): set `LLM_BACKEND=vertex` with `GOOGLE_CLOUD_PROJECT`, or `gemini_api` with `GOOGLE_API_KEY`. Confirm the model IDs in `config/models.yaml` (gemini profile) exist in the Model Garden.
+- **GitHub** (V11): a fine-grained token with Issues read/write on the issues repo; set `GITHUB_FILING=on`, `GITHUB_REPO`, `GITHUB_TOKEN`; run `make github-labels`.
+- **Hosted VM** (handoff §21): DNS, `HOSTED_MODE=true`, `make up-deploy && make seed`.
+- **Submission:** demo video (`docs/demo-script.md`), blog post, submission form with both tracks; ask Discord about the video length and two-track prizes (V14).
 
 ## Dev setup used in this session
 
-- Store: `SHOP_DB=artifacts/dev.db SHOP_ADMIN_TOKEN=devtoken SHOP_EXPLORER_PASSWORD=pw uv run uvicorn shop.app:app --port 8090`
-- FalkorDB: `docker run -d --name clew-falkordb-dev -p 127.0.0.1:6390:6379 falkordb/falkordb:v4.22.1`
-- Env: `source artifacts/dev.env` (FALKORDB_PORT=6390, CLEW_GRAPH=nebula_dev, LLM_BACKEND=off)
-- Run: `uv run python -m clew.graph.seed && uv run python -m clew.dev --explorers 4 --minutes 5`
+- Docker stack: `.env` uses host ports 6391 (FalkorDB), 3001 (Browser), 8095 (store), 8010 (MCP), 8082 (UI/API), because Causeway uses the defaults on this laptop.
+- LM Studio on the host at :1234; containers reach it at `http://host.docker.internal:1234/v1`.
+- No-Docker loop: `source artifacts/dev.env` (FalkorDB on 6390, store on 8090), then `uv run python -m clew.dev --explorers 4 --minutes 5`.

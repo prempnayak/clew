@@ -104,3 +104,19 @@ def test_add_cases_validates_element_ids(graph):
     assert bad["ok"] is False
     good = t.add_cases(CART_ITEMS, ["c2"], [{"case": "lowercase", "values": {"c1": "save10"}}], agent="strategist")
     assert good["ok"] and good["actions"] == [f"{CART_ITEMS}#form:coupon code:strategist-lowercase"]
+
+
+def test_template_writer_files_a_regression(graph):
+    from clew.reporter.runner import deterministic_turn
+
+    a, t = setup(graph)
+    graph.run("Q16", {"release": "v2", "now": 100})
+    ev = {"message": "TypeError: x", "label": "Add to cart", "was_target": "Cart (with items)", "previous": "v1",
+          "release": "v2", "now_target": "Search results", "affected_pages": ["Cart (with items)"]}
+    sig = "regression|/search?q|ffffffff#button:add to cart"
+    graph.run("Q12", {"action": a["search_add"], "release": "v2", "sig": sig, "kind": "regression", "title": "t",
+                      "initial_status": "confirmed", "severity": "P2", "evidence": json.dumps(ev), "now": 101})
+    deterministic_turn(t, sig, "confirmed", "v2")
+    b = graph.one("Q38", {"sig": sig})
+    assert b["status"] == "filed" and "release diff of v1 → v2" in b["issue_body"]
+    assert "**Worked in v1:**" in b["issue_body"] and b["issue_title"].startswith("Regression:")

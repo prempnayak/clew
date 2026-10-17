@@ -52,6 +52,8 @@ class Arrival:
     page_snap: str
     main_snap: str
     candidates: list[Candidate]
+    path: list[str] = field(default_factory=list)  # action keys walked from the entry page in this context
+    states: list[str] = field(default_factory=list)  # states along that path, ending with this one
 
 
 @dataclass
@@ -176,7 +178,7 @@ class Explorer:
             return None
         return await self.arrive(page, entry=True)
 
-    async def arrive(self, page, entry: bool = False) -> Arrival:
+    async def arrive(self, page, entry: bool = False, prev: Arrival | None = None, via: str | None = None) -> Arrival:
         """Fingerprint the current page, upsert it (Q03), read it if nobody has (Q03b + page reader + Q04),
         and add candidates a release added to an already-read page."""
         page_snap, main_snap = await snapshots(page)
@@ -198,7 +200,16 @@ class Explorer:
                 "now": now_ms(),
             },
         )
-        arrival = Arrival(fp.key, fp.route, page.url, page_snap, main_snap, cands)
+        arrival = Arrival(
+            fp.key,
+            fp.route,
+            page.url,
+            page_snap,
+            main_snap,
+            cands,
+            path=(prev.path + [via]) if prev and via else [],
+            states=(prev.states if prev else []) + [fp.key],
+        )
         if row["is_new"]:
             self.graph.publish("state.created", key=fp.key, name=name, by=self.name)
         if not row["read"]:
@@ -315,7 +326,7 @@ class Explorer:
                 return healed
         if not done.ok:
             return Outcome(None, done, [], False, int((time.time() - started) * 1000))
-        arrival = await self.arrive(page)
+        arrival = await self.arrive(page, prev=here, via=details["key"])
         return Outcome(arrival, done, [], True, int((time.time() - started) * 1000))
 
     async def heal(self, page, obs: Observer, details: dict, here: Arrival, instance: int) -> Outcome | None:
@@ -347,7 +358,7 @@ class Explorer:
         )
         if not done.ok:
             return None
-        arrival = await self.arrive(page)
+        arrival = await self.arrive(page, prev=here, via=details["key"])
         ms = int((time.time() - started) * 1000)
         if arrival.key in known:
             text = f"Renamed '{old_name}' → '{cand.name}' in {self.release}"
@@ -413,6 +424,7 @@ class Explorer:
                 "ms": out.ms,
                 "agent": self.name,
                 "work_kind": work.kind,
+                "via": json.dumps({"actions": here.path, "states": here.states}),
                 "now": now_ms(),
             },
         )
@@ -522,10 +534,21 @@ class Explorer:
         if d is None:
             self.finish(work, "failed", "unknown action")
             return
-        for _attempt in range(2):
+        via = self.original_route(work.target)
+        for attempt in range(2):
             ctx, page, obs = await self.fresh()
             try:
-                here = await self.go_to(page, obs, d["state"])
+                here = None
+                if via and attempt == 0:  # first try the route that produced the previous release's outcome
+                    start = await self.start(page)
+                    if start and via["states"] and via["states"][0] == start.key:
+                        steps = route.steps_for(self.graph, via["actions"], via["states"])
+                        here = await self.walk(page, obs, steps, start, replans=0) if steps else start
+                if here is None:
+                    if via and attempt == 0:
+                        await ctx.close()
+                        ctx, page, obs = await self.fresh()
+                    here = await self.go_to(page, obs, d["state"])
                 if here is None:
                     continue
                 out = await self.perform_and_record(page, obs, work, d, here, 0)
@@ -534,6 +557,20 @@ class Explorer:
             finally:
                 await ctx.close()
         self.finish(work, "failed", "could not reach the action's page")
+
+    def original_route(self, action: str) -> dict | None:
+        """The route (actions and states from the entry page) behind the previous release's working outcome of
+        this action. An outcome can depend on how the page was reached (an empty cart or a full one behind the
+        same login page), so a replay walks the same route before comparing releases."""
+        prev = self.graph.one("Q49", read_only=True)
+        if not prev:
+            return None
+        for o in self.graph.run("Q48", {"action": action}, read_only=True):
+            if o["release"] == prev["previous"] and o["ok"] and o.get("via"):
+                via = json.loads(o["via"])
+                if via.get("states"):
+                    return via
+        return None
 
     async def reproduce(self, work: Work) -> None:
         """confirm: replay the repro steps in a fresh session; verify_fix: the same on a new release."""

@@ -89,6 +89,7 @@ def lead(
             "ms": 5,
             "agent": "test",
             "work_kind": work_kind,
+            "via": "{}",
             "now": now,
         },
     )

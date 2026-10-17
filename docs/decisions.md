@@ -44,3 +44,14 @@ One dated line per verified fact or design change. When the plan (`docs/handoff.
 - **The Reporter's turn must end with the expected tool call, or the template writer finishes the claim.** Qwen3-8B sometimes stops after reading (`get_bug`, `repro_steps`, `affected_pages`) without calling `file_issue`. The turn's message now names the closing call, and if Q29c still shows no successful call, the deterministic writer files through the same audited tools within the same claim. The ADK instruction is passed as a callable, because ADK would otherwise read `{agent}`, `{run}` in the issue template as session-state keys.
 - **S1 in Docker with Qwen3-8B on LM Studio, 4 explorers, 10 minutes (session S-1):** recall 4/4 (B3 39.5 s, B1 67.6 s, B4 141.8 s, B2 367.3 s to first sighting), 0 decoys, 0 duplicate executions, route coverage 11/12 (`/order/:id` not reached). Page reads take 3–18 s each on the local model and LM Studio serves one request at a time, which is why B2 took longer than in deterministic runs.
 - **S3 in Docker (session S-2, `START=continue`):** the mission "Test invalid coupon codes" added 4 cases on *Your cart (with items)*. Four explorers claimed them in the same second and finished within 5 s, with no page reads on the way. New fact: "Coupon code = 'save10' → 'Unknown coupon code.'".
+- **Transitions keep the route that produced them (`LEADS_TO.via`), and replays walk that route first.** The first Docker S4 run confirmed two false regressions on *Log in (next)*. In v1 an explorer had reached that page from a cart with items; the replay reached it from an empty cart, so "Cart" and "Log in" led elsewhere. The page structure is identical in both cases, so the fingerprint can't tell them apart. With the original route replayed, the second S4 run found only R1. Q07 stores `via` (actions and states from the entry page); Q48 returns it.
+- **S4 in Docker with Qwen3-8B (session S-2 on the fresh S1 map):**
+  - 188 replay and 4 verify_fix jobs were queued;
+  - R1 was detected 2 min 44 s after the deploy, filed as one issue (#5), with the logged-out and logged-in variants merged;
+  - the rename was healed;
+  - B2 was verified fixed and its issue closed;
+  - B1, B3 and B4 got "still present";
+  - Gift cards and the notice page were discovered;
+  - no other regressions.
+  
+  Qwen called `file_issue` with a truncated signature; the tool refused it and the template writer filed it.
