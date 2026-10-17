@@ -168,7 +168,20 @@ These are local runs on one laptop, scored with `make score` against the hidden 
   - no false regressions.
 - **Deterministic reader (`LLM_BACKEND=off`), 4 explorers in one process:** B1, B2 and B3 were filed within about 70 s and B4 at about 3.5 min.
 
-S5 table: see [`eval/results/baseline.md`](eval/results/baseline.md) once `make baseline` has run.
+**S5, shared map vs isolated memories** (`make baseline`: 3 runs per mode, 4 explorer containers, 4 minutes each, deterministic page reader in both modes so the comparison measures coordination and memory rather than LLM queueing). Medians:
+
+| Metric | Shared map | Isolated memories |
+|---|---|---|
+| New-work actions executed | 215 | 372 |
+| Unique actions covered | **215** (the whole v1 map) | 93 |
+| Actions run by more than one explorer | **0** | 93 |
+| Page reads (one LLM call each with an LLM backend) | **27** | 84 |
+| Time to B1 (coupon stacks) | **19 s** | 60.6 s |
+| Time to B2 (checkout 500) | **21.4 s** | 73.9 s |
+| Time to B3 (wishlist crash) | **28.6 s** | 97.9 s |
+| Time to B4 (NaN price, needs variation mode) | **165.9 s** | not found in 4 min |
+
+In isolated mode the four explorers did almost the same work four times. Every action one of them covered was also run by another, and each explorer read every page itself. Raw runs: [`eval/results/baseline.md`](eval/results/baseline.md).
 
 ## Setup
 

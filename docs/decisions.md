@@ -60,3 +60,11 @@ One dated line per verified fact or design change. When the plan (`docs/handoff.
   2. `falkordblite`'s bundled graph module does not load on Linux (`falkordb.so: not a dynamic executable`), so all 25 graph-backed tests errored at server start.
   
   CI now sets `FALKORDB_EMBEDDED=0` and points the suite at the `falkordb/falkordb:v4.22.1` service; 94 tests pass that way on Linux. `falkordblite` stays the default for local runs on macOS.
+- **S5 measured (3 runs per mode, 4 explorers, 4 minutes, deterministic reader in both modes).** Shared vs isolated, medians:
+  - unique actions 215 vs 93;
+  - actions run by more than one explorer 0 vs 93;
+  - page reads 27 vs 84;
+  - time to B1/B2/B3 19/21/29 s vs 61/74/98 s;
+  - B4 at 166 s vs never.
+  
+  The LLM backend was off for both modes because LM Studio serves one request at a time, so the isolated mode would mostly have measured queueing for the model. Every fresh session resets its graph, so all sessions are numbered S-1.
