@@ -6,7 +6,6 @@ exact accessible name. Forms fill each field by role and name, then click the su
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 
@@ -117,6 +116,3 @@ async def testid_values(page) -> dict[str, list[str]]:
         out.setdefault(k, []).append(v)
     return out
 
-
-def selector_of(details: dict) -> dict:
-    return json.loads(details.get("selector") or "{}")

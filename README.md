@@ -2,7 +2,7 @@
 
 **A swarm of AI testers that maps your web app once, remembers every route, and files bugs you can reproduce.**
 
-Several explorer agents test a web app in parallel in real browsers and build **one shared map of it in FalkorDB**: every kind of page, every action, and where each action leads in each release. The map splits the work so no two agents repeat it, turns every bug into an exact route to reproduce it, and becomes the regression test when a new release ships.
+Several tester agents explore a web app in parallel in real browsers and build **one shared map of it in FalkorDB**: every kind of page, every action, and where each action leads in each release. The map splits the work so no two testers repeat each other. It turns every bug into the exact steps to reproduce it, and becomes the regression test when a new release ships.
 
 Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB). Tracks entered:
 
@@ -11,36 +11,180 @@ Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB). Track
 
 > Clew is the thread Ariadne gave Theseus to find his way through the labyrinth. The swarm leaves that thread through the app, so anyone can follow it back to a bug.
 
+> ⚠️ **Clew really clicks buttons, fills in forms and submits them.** It is a testing tool. Only point it at a website you own, running in a test or staging environment with test accounts and fake data. **Never point it at a live production site** or anyone else's website: it can place orders, change data and trigger emails, just like a real user would.
+
+**Contents:**
+[Quick start](#quick-start) ·
+[Using the war room](#using-the-war-room) ·
+[Hosted deployment](#hosted-deployment) ·
+[Testing your own website](#testing-your-own-website) ·
+[Does it need an LLM?](#does-it-need-an-llm) ·
+[How it works](#how-it-works) ·
+[Graph data model](#the-graph-data-model) ·
+[Cypher and algorithms](#cypher-queries-and-graph-algorithms) ·
+[Results](#demo-scenarios-the-acceptance-tests) ·
+[Tests](#tests) ·
+[Safety](#safety)
+
 ---
 
-## What it does
+## Quick start
+
+You need **Docker** (with about 8 GB of free memory) and `make`. Everything else runs in containers.
+
+```bash
+git clone https://github.com/prempnayak/clew.git && cd clew
+cp .env.example .env        # optional: change the passwords; LLM_BACKEND=off works with no model at all
+make up                     # builds and starts everything (the first build takes a few minutes)
+make seed                   # creates the empty map in FalkorDB
+open http://localhost:8081  # the war room
+```
+
+In the war room, press **▶ Start**. Four AI testers start exploring the bundled demo store, **Nebula Gear**, which has a few planted bugs; the testers don't know where they are. A short guide opens on your first visit (the **Guide** button reopens it).
+
+To use a model, set in `.env`:
+
+| Option | `.env` settings |
+|---|---|
+| A local model with LM Studio, vLLM or Ollama | `LLM_BACKEND=openai`, `OPENAI_BASE_URL=http://host.docker.internal:1234/v1` |
+| Gemini | `LLM_BACKEND=vertex` with `GOOGLE_CLOUD_PROJECT`, or `LLM_BACKEND=gemini_api` with `GOOGLE_API_KEY` |
+| No model | `LLM_BACKEND=off` (see [Does it need an LLM?](#does-it-need-an-llm)) |
+
+Stop everything with `make down`; the map is kept in a Docker volume. If port 8081 or 8090 is taken on your machine, change `API_DEV_PORT`, `SHOP_DEV_PORT` and the other `*_DEV_PORT` values in `.env`.
+
+## Using the war room
+
+| Area | What it is for |
+|---|---|
+| **1 · Run a test session** | Choose the number of testers and minutes, then **▶ Start**. *Fresh map* resets the store and starts from nothing; *Continue map* reuses what the testers already know (memory); *v1 snapshot* starts from a saved map |
+| **2 · Try a scenario** | While a session runs: **Kill a tester** (its unfinished task is picked up by another after its 2-minute lease), **Deploy v2** (a new store release: every known route is replayed and compared), **Restart services** (the map survives), **Reset everything** |
+| **Live map** (centre) | Each circle is a kind of page, each arrow an action. Size = how many routes pass through it. Green = fully tested, amber = work left, red ring = a bug was found there. Click a page for its actions, what was learned there, and **Add mission** (ask the testers to focus on that page) |
+| **AI testers, Live activity** (left) | Who is doing what right now, and the latest steps |
+| **Bugs found** (right) | Every problem and its status. A bug is filed only after a second tester reproduces it from scratch. Click it for the exact steps, a screenshot and the issue text |
+| **Release diff** | After **Deploy v2**: regressions (filed), renamed buttons (recognised, not filed), fixed bugs (closed), new pages |
+| **Graph queries** | The Cypher behind every decision, and each query the Reporter agent ran |
+
+The same actions are available from the terminal:
+
+```bash
+make session N=4 MIN=10      # start a session
+make kill-explorer           # kill one tester
+make deploy-v2               # ship the store's v2
+make rollback                # back to v1
+make score                   # what was found, against the hidden answer key
+```
+
+More, including how to watch the agents' queries live and query the graph yourself: [`docs/running.md`](docs/running.md).
+
+## Hosted deployment
+
+One Google Cloud VM runs everything behind Caddy with automatic HTTPS:
+
+```bash
+export PROJECT_ID=your-project LLM=vertex    # or LLM=off
+deploy/gcp.sh create                         # VM, static IP, firewall, Docker
+deploy/gcp.sh push                           # uploads the code and a hosted .env; prints the URLs
+```
+
+You get two public addresses:
+
+- `https://<ip>.sslip.io` for the war room;
+- `https://shop.<ip>.sslip.io` for the demo store, so visitors can click around the app the testers test.
+
+The store's `/__*` test hooks, FalkorDB, the MCP server and the controller are never reachable from outside. Hosted mode caps sessions at 4 testers and 10 minutes, one at a time, with a daily limit, and files GitHub issues in dry-run mode only. Step-by-step guide, costs and teardown: [`docs/deploy.md`](docs/deploy.md). Demo video runbook: [`docs/demo-script.md`](docs/demo-script.md).
+
+## Testing your own website
+
+> ⚠️ **Read this first.**
+> - Clew **acts like a real user**: it clicks every button and link it finds, fills in forms with valid and invalid values, logs in, adds to carts and checks out. Anything a user can trigger, it may trigger: orders, emails, payments in test mode, data changes.
+> - Use it **only on a website you own**, in a **test or staging environment** with **test accounts and fake data**. **Never on a live production site** or on someone else's website.
+> - It stays on the one origin you give it (`SHOP_URL`): requests to any other site are blocked. It never visits paths starting with `/__`. It doesn't upload files or follow `mailto:`/`tel:` links.
+> - It is a testing tool for a demo. It has no rate limiting against your server beyond its few testers, so don't aim it at shared infrastructure.
+
+### 1. Prepare your app
+
+1. Run your app in a staging or local environment that Docker can reach. From the Clew containers, your laptop is `host.docker.internal`.
+2. Create **up to 8 test accounts** that share one password. Their emails follow a pattern with `{i}` = 1–8, e.g. `qa{i}@example.test`.
+3. *(Optional, recommended)* Add two small test endpoints to your app, protected by a token:
+   - `GET /__version` → `{"release": "<name>"}`, so Clew notices new releases and replays the map.
+   - `POST /__reset` (with `Authorization: Bearer <SHOP_ADMIN_TOKEN>`), to reset test data at the start of a "fresh map" session.
+
+   Without them, use **Continue map** sessions and skip release replays.
+4. *(Optional)* Add `<meta name="app-release" content="<release>">` to your pages, so explorers never record one release's behaviour under another.
+5. *(Optional)* Mark money values with `data-testid` (`subtotal`, `discount`, `total`, `product-price`, `cart-count`, `line-item`) to enable the built-in rule checks (totals add up, a discount is at most 10%, prices are numbers).
+
+### 2. Point Clew at it
+
+In `.env`:
+
+```bash
+SHOP_URL=http://host.docker.internal:3000     # your app (the only origin Clew may visit)
+SHOP_ADMIN_TOKEN=<token for /__reset>        # if you added the hooks
+SHOP_EXPLORER_PASSWORD=<your test accounts' password>
+CLEW_APP=myapp                                # a name for your app's config folder and graphs
+CLEW_GRAPH=myapp_live
+```
+
+Create `config/apps/myapp/` with copies of the files you need to change from `config/`:
+
+| File | What to set |
+|---|---|
+| `scope.yaml` | `account_email: "qa{i}@example.test"` (the only origin the testers visit is `SHOP_URL`'s) |
+| `fingerprint.yaml` | `route_params`: URL patterns whose segments are IDs or slugs, e.g. `/blog/:slug`. Numeric and hex IDs are detected automatically |
+| `checks.yaml` | Which routes the money rules run on, e.g. `cart_total: ['/basket']`. Use `{}` to switch them off |
+
+### 3. Run
+
+```bash
+make up && make seed            # seeds myapp_seed and myapp_live
+make session N=2 MIN=10 START=continue   # START=fresh only if you added /__reset
+```
+
+Watch the war room. Start with 1–2 testers and a short session, and check what they do before running longer. The map, bugs and repro steps work exactly as with the demo store. `make down` stops everything.
+
+Detecting a bug works out of the box for uncaught JavaScript errors, HTTP 5xx responses and crashes. Anything app-specific (a rule about your data) is a small Python function in `clew/oracles/checks.py`, mapped to routes in `checks.yaml`.
+
+## Does it need an LLM?
+
+**No.** Everything works with `LLM_BACKEND=off`. The S5 experiment ran without one, and the demo store's bugs are found either way.
+
+| Part | With an LLM | Without |
+|---|---|---|
+| Testers' claims, routes, clicks, checks, replays, release diffs | never uses one | the same |
+| Reading a new page (once per kind of page) | names the page, proposes smarter test inputs, notes facts | default inputs by field type ("email" → a test account, "code" → codes printed on the page, quantity → 2/0/empty) |
+| Recognising a renamed button | asks the model when two buttons are equally likely | picks the closest name with the same role |
+| Writing bug reports | the Reporter agent writes them through its MCP tools | a template fills in the same sections |
+
+A model makes reports read better and finds more interesting inputs on unfamiliar forms. The graph makes every decision.
+
+## How it works
 
 ```
- explorers ─ claim work (one atomic Cypher query, most important page first)
-          ─ walk the shortest known route there (no LLM)
-          ─ act ─ observe (uncaught JS errors, HTTP 5xx, rule checks) ─ record in FalkorDB
-          └─ new page? → the page reader (one LLM call, claimed so it runs once) adds its actions to the map
+ testers ─ claim work (one atomic Cypher query, most important page first)
+        ─ walk the shortest known route there (no LLM)
+        ─ act ─ observe (uncaught JS errors, HTTP 5xx, rule checks) ─ record in FalkorDB
+        └─ new page? → the page reader (once per page, claimed so it runs once) adds its actions to the map
 
- bug observed ─► Reporter queues a confirm job ─► an explorer replays it in a fresh browser
+ bug observed ─► Reporter queues a confirm job ─► another tester replays it in a fresh browser
              ─► confirmed ─► Reporter files the issue, with the shortest route as repro steps
 
- new release ─► the release watcher queues a replay job per known transition
-             ─► explorers replay them in parallel ─► per-release edge diff
+ new release ─► the release watcher queues a replay job per known step
+             ─► testers replay them in parallel ─► per-release diff
              ─► regressions filed · renamed buttons healed · fixed bugs verified and closed
 ```
 
-The app under test is **Nebula Gear** (`shop/`), a small astronomy store we built with planted bugs, decoys and two releases. The agents never see where the bugs are: the answer key (`shop/planted_bugs.yaml`) is excluded from every Clew image and read only by the scorer.
+The demo store, **Nebula Gear** (`shop/`), is a small astronomy store we built with planted bugs, decoys and two releases. The testers never see where the bugs are: the answer key (`shop/planted_bugs.yaml`) is excluded from every Clew image and read only by the scorer.
 
 **The removal test.** Take FalkorDB out and the swarm collapses:
 
 - there is no shared map, so there are no routes and no repro steps;
-- there are no atomic claims, so agents repeat each other;
+- there are no atomic claims, so testers repeat each other;
 - there is no per-release baseline, so regressions can't be found;
 - there is no memory across sessions.
 
 Every decision comes from a named Cypher query or a graph algorithm.
 
-## Architecture
+### Architecture
 
 ```mermaid
 flowchart LR
@@ -180,88 +324,35 @@ Earlier runs (Oct 17), same stack and model:
 
 In isolated mode the four explorers did almost the same work four times. Every action one of them covered was also run by another, and each explorer read every page itself. Raw runs: [`eval/results/baseline.md`](eval/results/baseline.md).
 
-## Setup
-
-### Requirements
-
-- Docker with about 8 GB of free RAM.
-- Optionally [uv](https://docs.astral.sh/uv/) and Node 22, to run tests or the dev loop outside Docker.
-- An LLM is optional:
-  - `LLM_BACKEND=off` runs everything with the deterministic page reader and template Reporter;
-  - `openai` uses any OpenAI-compatible server (we developed against LM Studio);
-  - `vertex` or `gemini_api` uses Gemini.
-
-### Local (Docker)
+## Tests
 
 ```bash
-git clone https://github.com/prempnayak/clew.git && cd clew
-cp .env.example .env            # set the passwords and tokens; choose LLM_BACKEND
-make up                         # FalkorDB, store, API+UI, MCP, scheduler, reporter, controller (explorers start at 0)
-make seed                       # indexes + App + Release v1 → nebula_seed, copied to nebula_live
-make session N=4 MIN=10         # S1: start 4 explorer containers for 10 minutes
-open http://localhost:8081      # the war room (API_DEV_PORT in .env if 8081 is taken)
-
-make kill-explorer              # S2
-make restart-all                # S3 (then: make session START=continue, add a mission in the UI)
-make snapshot-v1                # freeze the v1 map
-make deploy-v2                  # S4
-make score                      # recall, decoys, coverage, duplicates vs the hidden answer key
-make baseline RUNS=3            # S5: shared vs isolated
+make test               # queries, fingerprint (54 real page snapshots), extraction, oracles, tools, store, MCP over HTTP
+make test-integration   # one tester, no LLM, against the real store: must file B2, B3 and B1 (~6 min)
+make lint
 ```
 
-LLM settings in `.env` (model IDs per backend live in `config/models.yaml`):
+Query tests run on embedded FalkorDB (`falkordblite`) locally. CI runs the whole suite against the pinned `falkordb/falkordb:v4.22.1` image.
+
+## Development without Docker
 
 ```bash
-# a local OpenAI-compatible server on the host, e.g. LM Studio
-LLM_BACKEND=openai
-OPENAI_BASE_URL=http://host.docker.internal:1234/v1
-# or Gemini through Vertex AI
-LLM_BACKEND=vertex
-GOOGLE_CLOUD_PROJECT=your-project
-GOOGLE_CLOUD_LOCATION=global
-```
-
-GitHub filing: `GITHUB_FILING=dry_run` by default, so issues appear in the UI only. To file real issues:
-
-1. Create a fine-grained token with Issues read/write on **one** repo.
-2. Set `GITHUB_FILING=on`, `GITHUB_REPO` and `GITHUB_TOKEN`.
-3. Run `make github-labels` once.
-
-### Development without Docker for Clew
-
-```bash
-uv sync && (cd ui && npm ci && npm run build)
-uv run playwright install chromium
+uv sync && (cd ui && npm ci && npm run build) && uv run playwright install chromium
 docker run -d -p 127.0.0.1:6390:6379 falkordb/falkordb:v4.22.1
 SHOP_ADMIN_TOKEN=dev SHOP_EXPLORER_PASSWORD=pw uv run uvicorn shop.app:app --port 8090 &
 export FALKORDB_PORT=6390 SHOP_URL=http://localhost:8090 SHOP_ADMIN_TOKEN=dev SHOP_EXPLORER_PASSWORD=pw
 uv run python -m clew.graph.seed
-uv run python -m clew.dev --explorers 4 --minutes 5      # watcher + reporter + explorers in one process
+uv run python -m clew.dev --explorers 4 --minutes 5      # watcher + reporter + testers in one process
 uv run uvicorn clew.api.app:app --port 8081              # the war room
 ```
 
-How to run a session, read the war room and check that the agents navigate by the graph: [`docs/running.md`](docs/running.md).
-
-### Tests
-
-```bash
-make test               # queries (embedded FalkorDB), fingerprint, extraction, oracles, tools, store, MCP over HTTP
-make test-integration   # one explorer, deterministic reader, real store: must file B2, B3 and B1 (~6 min)
-make lint
-```
-
-To run the query tests against the Docker image instead of the embedded build: `FALKORDB_EMBEDDED=0 FALKORDB_PORT=6390 make test`.
-
-### Hosted
-
-`deploy/gcp.sh create && deploy/gcp.sh push` puts the whole system on one Compute Engine VM behind Caddy with automatic HTTPS (`<ip>.sslip.io` if you have no domain), with `HOSTED_MODE=true` caps and dry-run filing. Only Caddy listens publicly: the store's `/__*` hooks, FalkorDB, MCP and the controller are never routed. Step-by-step guide: [`docs/deploy.md`](docs/deploy.md). Demo video runbook: [`docs/demo-script.md`](docs/demo-script.md).
-
 ## Safety
 
-- **Explorers act only on our own store.** Every request to another origin is aborted (`context.route`), navigation follows `config/scope.yaml`, inputs are capped at 200 characters, and dialogs are dismissed.
-- **Page text is data, never instructions.** The page reader may only pick candidate ids that code extracted from the page; unknown ids are dropped. No model writes Cypher, selectors or code.
-- **Filing is gated.** `file_issue` refuses unless the bug is `confirmed`; filing is rate-limited and dry-run in hosted mode.
-- **Synthetic data only:** synthetic products and test accounts in our own app.
+- **The testers act only on the one origin they are given.** Every request to another origin is aborted; navigation follows `config/scope.yaml`. Inputs are capped at 200 characters, dialogs are dismissed, and there are no uploads or downloads.
+- **Page text is data, never instructions.** The page reader may only pick elements that code extracted from the page; unknown ids are dropped. No model writes Cypher, selectors or code.
+- **Filing is gated.** An issue is filed only for a bug that was confirmed in a fresh browser. GitHub filing is dry-run by default; real filing uses a token scoped to one repository's issues.
+- **The hosted demo exposes only the war room and the demo store**, with the store's test hooks blocked and sessions capped.
+- **Only synthetic data:** the demo store has synthetic products and test accounts.
 - **The answer key stays hidden.** It is excluded by `.dockerignore`, never mounted, and read only by `scorer/score.py`.
 
 ## Honest notes
@@ -272,7 +363,7 @@ To run the query tests against the Docker image instead of the embedded build: `
 
 ## AI-assistant disclosure
 
-This project was built with AI coding assistance (Claude Code). Every significant AI-assisted change is listed with how it was verified in [`docs/ai-usage.md`](docs/ai-usage.md). The team reviewed the code and can walk through any file.
+This project was built with AI coding assistance (Claude Code). Every significant AI-assisted change is listed, with how it was verified, in [`docs/ai-usage.md`](docs/ai-usage.md). The team reviewed the code and can walk through any file.
 
 ## License
 

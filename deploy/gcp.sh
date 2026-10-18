@@ -54,7 +54,7 @@ push)
         if [ ! -f ~/clew/.env ]; then mv /tmp/clew.env.hosted ~/clew/.env; else rm -f /tmp/clew.env.hosted; fi && \
         cd ~/clew && touch .hosted && sudo make up-deploy && \
         sudo docker compose -f compose.yaml -f compose.deploy.yaml exec -T api python -m clew.graph.seed"
-  echo "Clew is up: https://${DOMAIN}"
+  echo "Clew is up: https://${DOMAIN}   (the store: https://shop.${DOMAIN})"
   ;;
 status)
   onvm "cd ~/clew && sudo docker compose -f compose.yaml -f compose.deploy.yaml ps"

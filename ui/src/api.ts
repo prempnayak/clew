@@ -16,6 +16,7 @@ export type Agent = { name: string; role: string; state: string; work: string | 
 export type Coverage = { states: number; actions: number; done: number; untried: number; claimed: number; bugs: number };
 export type Overview = {
   graph: string; release: string | null; previous: string | null; hosted: boolean; filing: string; llm: string;
+  store_url?: string;
   session: { id: string; mode: string; explorers: number; minutes: number; started_at: number } | null;
   coverage: Coverage;
 };
@@ -46,6 +47,7 @@ export const api = {
   sessions: () => get<any[]>("/api/sessions"),
   facts: () => get<any[]>("/api/facts?limit=12"),
   growth: () => get<{ kind: string; at: number }[]>("/api/growth"),
+  timeline: () => get<any[]>("/api/timeline?limit=14"),
   diff: () => get<any>("/api/diff"),
   toolcalls: () => get<any[]>("/api/toolcalls?limit=25"),
   toolcall: (id: string) => get<any>(`/api/toolcalls/${enc(id)}`),

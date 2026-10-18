@@ -85,3 +85,17 @@ One dated line per verified fact or design change. When the plan (`docs/handoff.
   3. **Only the default instance writes an action's edge.** Variation runs, and repros of a bug found on a later instance, only add an edge to a page not reached before. Before, the 3rd item of a link group could overwrite the 1st item's outcome, so the v1 and v2 records disagreed depending on which instance ran last.
   4. **One regression per form, not per input case.** The regression signature drops the case (`regression|<route>|<hash8>#form:<fields>`).
   5. **Claims are renewed while the work is in progress (Q58, Q58b), and work whose claim was lost is dropped.** With a slow local model, a route through several new pages could outlast the 120 s lease; another explorer then took the action, the first one finished it anyway, and Q32 counted a duplicate.
+- **The demo store gets its own public address** (`shop.<domain>`) in hosted mode, so visitors can click around the app the testers test. Caddy blocks its `/__*` test hooks. Carts, wishlists and orders belong to the browser session, so a visitor's clicks never change what the testers see.
+- **War room redesigned for first-time users:**
+  - a welcome guide on the first visit;
+  - controls split into "Run a test session" and "Try a scenario", with labelled fields and tooltips;
+  - a one-line status summary and an empty-map hint;
+  - a plain-language subtitle on every panel and a live activity feed;
+  - toasts instead of alerts, and only running testers listed.
+  
+  Prompted by a first-time user who could not find their way around the old layout.
+- **Removed unused parts before judging:**
+  - the `selector_of` helper;
+  - the `idle_stop_s`, `defaults`, `hosted` and `allowed_origins` config keys (hosted caps live in `.env`; the only allowed origin is `SHOP_URL`'s);
+  - model entries for the LLM judge and the release analyst, which were never built;
+  - the internal build log.

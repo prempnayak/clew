@@ -78,6 +78,7 @@ def overview() -> dict:
         "coverage": graph().one("Q23", read_only=True),
         "hosted": HOSTED,
         "filing": env("GITHUB_FILING", "dry_run"),
+        "store_url": env("CLEW_STORE_PUBLIC_URL"),
         "llm": env("LLM_BACKEND", "off"),
     }
 

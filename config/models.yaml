@@ -5,16 +5,12 @@
 gemini:
   page_reader:     {model: gemini-3.5-flash-lite, thinking_level: low}
   locate:          {model: gemini-3.5-flash-lite, thinking_level: low}
-  judge:           {model: gemini-3.8-flash, thinking_level: low}
   reporter:        {model: gemini-3.8-flash, thinking_level: low}
   strategist:      {model: gemini-3.8-flash, thinking_level: medium}
-  release_analyst: {model: gemini-3.5-flash-lite, thinking_level: low}
 openai:          # OPENAI_BASE_URL (e.g. http://localhost:1234/v1 for LM Studio) and OPENAI_API_KEY
   page_reader:     {model: qwen/qwen3-8b}
   locate:          {model: qwen/qwen3-8b}
-  judge:           {model: qwen/qwen3-8b}
   reporter:        {model: qwen/qwen3-8b}
   strategist:      {model: qwen/qwen3-8b}
-  release_analyst: {model: qwen/qwen3-8b}
-# Uses switched off regardless of backend (cut list, handoff §19.4)
-disabled: [judge]
+# Uses switched off regardless of backend, e.g. disabled: [strategist]
+disabled: []

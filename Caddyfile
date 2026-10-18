@@ -1,8 +1,18 @@
-# Only the API (which serves the UI) is public. The store's /__* test hooks, FalkorDB, MCP and the controller
-# are never routed.
+# Two public sites, both with automatic HTTPS:
+#   {$CLEW_DOMAIN}       → the war room (the API serves the UI)
+#   shop.{$CLEW_DOMAIN}  → the Nebula Gear store, so visitors can click around the app the swarm tests
+# The store's /__* test hooks (release switch, reset, routes) are never routed. FalkorDB, MCP and the
+# controller have no public address at all.
 {$CLEW_DOMAIN} {
 	encode gzip
 	@hooks path /__*
 	respond @hooks 404
 	reverse_proxy api:8081
+}
+
+shop.{$CLEW_DOMAIN} {
+	encode gzip
+	@hooks path /__*
+	respond @hooks 404
+	reverse_proxy shop:8090
 }

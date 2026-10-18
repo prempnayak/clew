@@ -7,9 +7,13 @@ export function Swarm({ agents, coverage, jobs, duplicates }: { agents: Agent[];
   const queued = jobs.filter((j) => j.status === "queued" || j.status === "claimed");
   return (
     <section>
-      <h2>Swarm</h2>
+      <h2>AI testers</h2>
+      <p className="hint">Each tester claims one task at a time from the graph, walks the shortest known route to it and records what happened. Grey = stopped.</p>
+      {agents.filter((a) => Date.now() - a.last_seen < 120_000).length === 0 && (
+        <p className="muted">No testers running. Start a session.</p>
+      )}
       <ul className="agents">
-        {agents.map((a) => {
+        {agents.filter((a) => Date.now() - a.last_seen < 120_000).map((a) => {
           const alive = Date.now() - a.last_seen < 30_000;
           const stopped = a.state === "stopped";
           return (
@@ -20,14 +24,17 @@ export function Swarm({ agents, coverage, jobs, duplicates }: { agents: Agent[];
           );
         })}
       </ul>
+      {agents.some((a) => Date.now() - a.last_seen >= 120_000) && (
+        <p className="muted small-note">+ {agents.filter((a) => Date.now() - a.last_seen >= 120_000).length} testers from earlier sessions (stopped)</p>
+      )}
       {coverage && (
         <dl className="stats">
-          <dt>Pages</dt><dd>{coverage.states}</dd>
-          <dt>Actions done</dt><dd>{coverage.done}/{coverage.actions}</dd>
-          <dt>Claimed now</dt><dd>{coverage.claimed}</dd>
-          <dt>Jobs pending</dt><dd>{queued.length}</dd>
-          <dt>Duplicates (Q32)</dt><dd className={duplicates ? "bad" : "good"}>{duplicates ?? "–"}</dd>
-          <dt>Live agents</dt><dd>{live.length}</dd>
+          <dt title="Distinct kinds of page in the map">Kinds of page</dt><dd>{coverage.states}</dd>
+          <dt title="Actions tested / actions known">Actions tested</dt><dd>{coverage.done}/{coverage.actions}</dd>
+          <dt title="Tasks currently held by a tester (each claim expires after 2 minutes)">Tasks in progress</dt><dd>{coverage.claimed}</dd>
+          <dt title="Confirm, replay and verify-fix jobs waiting">Jobs waiting</dt><dd>{queued.length}</dd>
+          <dt title="Actions run by more than one tester in this session (query Q32). Should be 0.">Duplicate work</dt><dd className={duplicates ? "bad" : "good"}>{duplicates ?? "–"}</dd>
+          <dt>Testers alive</dt><dd>{live.length}</dd>
         </dl>
       )}
     </section>
@@ -50,7 +57,8 @@ export function Bugs({ bugs, onPick }: { bugs: Bug[]; onPick: (sig: string) => v
   const suspects = bugs.length - shown.length;
   return (
     <section>
-      <h2>Bugs</h2>
+      <h2>Bugs found</h2>
+      <p className="hint">A problem becomes a bug report only after another tester reproduces it from scratch in a fresh browser. Click a bug for the steps and screenshot.</p>
       <div className="pipeline">
         {PIPELINE.map((s) => (
           <span key={s} className={`chip ${s}`}>{s.replace("_", " ")} {bugs.filter((b) => b.status === s).length}</span>
@@ -66,14 +74,15 @@ export function Bugs({ bugs, onPick }: { bugs: Bug[]; onPick: (sig: string) => v
           </li>
         ))}
       </ul>
-      {suspects > 0 && <p className="muted">{suspects} suspect(s) not reported (console errors, replay noise)</p>}
+      {shown.length === 0 && <p className="muted">No bugs yet.</p>}
+      {suspects > 0 && <p className="muted">{suspects} suspect(s) not reported: console noise or glitches seen while replaying, which never count as bugs.</p>}
     </section>
   );
 }
 
 // -- release diff ------------------------------------------------------------------------------------------------
 export function Diff({ diff, onPickBug }: { diff: any; onPickBug: (sig: string) => void }) {
-  if (!diff?.previous) return <section><h2>Release diff</h2><p className="muted">One release so far.</p></section>;
+  if (!diff?.previous) return <section><h2>Release diff</h2><p className="hint">After you press <b>Deploy v2</b>, every route the testers know is replayed on the new release and the differences appear here.</p></section>;
   const c = diff.changes ?? { renames: [], fixed: [], still: [], new_pages: [] };
   const fixed = (c.fixed ?? []).filter((f: any) => f.sig);
   const still = (c.still ?? []).filter((f: any) => f.sig);
@@ -81,8 +90,9 @@ export function Diff({ diff, onPickBug }: { diff: any; onPickBug: (sig: string) 
   return (
     <section>
       <h2>Release diff {diff.previous} → {diff.current}</h2>
+      <p className="hint">Every known route was replayed on {diff.current}. Regressions are filed as bugs; renamed buttons are recognised; fixed bugs are closed.</p>
       <p className="diffline">
-        <span className="bad">✗ {diff.regressions.length} regression(s)</span> · ↻ {(c.renames ?? []).length} renamed ·
+        <span className="bad">✗ {diff.regressions.length} broken step(s) → {new Set(diff.regressions.map((r: any) => r.action.split("|")[0] + "#" + r.action.split("#")[1])).size} regression issue(s)</span> · ↻ {(c.renames ?? []).length} renamed ·
         <span className="good"> ✓ {fixed.length} fixed</span> · ＋ {pages.length} new page(s) · {still.length} still present
         {diff.variants?.length ? ` · ~ ${diff.variants.length} changed layout (not filed)` : ""}
         {diff.replays_pending?.pending ? ` · ${diff.replays_pending.pending} replays pending` : ""}
@@ -157,7 +167,8 @@ export function Cypher({ calls }: { calls: any[] }) {
   };
   return (
     <section>
-      <h2>Show Cypher</h2>
+      <h2>Graph queries (under the hood)</h2>
+      <p className="hint">Every decision is a Cypher query on FalkorDB. ★ = the key ones; below, each tool call the Reporter agent made and the queries it ran.</p>
       <ul className="small calls">
         <li className="fixed" onClick={() => showQuery("Q06")}>★ Q06 claim_action: how explorers split work</li>
         <li className="fixed" onClick={() => showQuery("Q09")}>★ Q09 importance: betweenness centrality</li>
@@ -241,5 +252,29 @@ export function BugDrawer({ sig, onClose }: { sig: string; onClose: () => void }
       {ev.screenshot && <img className="shot" src={`/api/screenshots/${ev.screenshot}`} alt="screenshot at the time of the bug" />}
       {b.issue_body && (<><h4>Issue body</h4><pre className="issue">{b.issue_body}</pre></>)}
     </Drawer>
+  );
+}
+
+// -- live activity -----------------------------------------------------------------------------------------------
+const KIND: Record<string, string> = {
+  explore: "explored", mission: "mission", variation: "tried another item", confirm: "re-checked a bug",
+  replay: "replayed on new release", verify_fix: "checked a fix",
+};
+
+export function Activity({ rows }: { rows: any[] }) {
+  return (
+    <section>
+      <h2>Live activity</h2>
+      <p className="hint">The latest steps, newest first. Every one is read from and written to the graph.</p>
+      <ul className="small activity">
+        {rows.length === 0 && <li className="muted">Nothing yet.</li>}
+        {rows.map((r, i) => (
+          <li key={i}>
+            <span className={r.ok ? "good" : "bad"}>{r.ok ? "✓" : "✗"}</span> <b>{r.agent.replace("explorer-", "tester ")}</b>{" "}
+            {KIND[r.kind] ?? r.kind}: {r.label} <small>{ago(r.at)}</small>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

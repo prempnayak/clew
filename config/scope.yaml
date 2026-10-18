@@ -1,5 +1,5 @@
-# Where explorers may go (handoff §10.4, §22). Requests to any other origin are aborted.
-allowed_origins: ["http://shop:8090"]   # SHOP_URL's origin is always allowed too
+# Where explorers may go (handoff §10.4, §22). The only origin they may visit is SHOP_URL's; every request
+# to any other origin is aborted.
 deny_paths: ['^/__', '^mailto:', '^tel:', '^javascript:']
 max_candidates_per_page: 30
 max_input_length: 200
