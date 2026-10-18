@@ -115,4 +115,3 @@ async def testid_values(page) -> dict[str, list[str]]:
     for k, v in rows:
         out.setdefault(k, []).append(v)
     return out
-
