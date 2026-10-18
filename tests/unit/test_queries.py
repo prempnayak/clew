@@ -499,3 +499,45 @@ def test_baseline_reads(graph):
     assert graph.run("Q56", {"session": "S-1"}) == [{"agent": "e1", "action": a["cart_icon"], "at": 2}]
     graph.run("Q04", {"state": HOME, "name": None, "actions": [], "now": 1})
     assert graph.one("Q57") == {"reads": 7, "states": 8}  # Q04 marks a page read
+
+
+def test_regression_kinds_broken_moved_variant(graph):
+    a = nebula_map(graph)
+    graph.run("Q16", {"release": "v2", "now": 1000})
+    lead(graph, a["search_add"], SEARCH, release="v2", ok=False, work_kind="replay")  # broken
+    lead(graph, a["cart_icon"], CART_ITEMS, release="v2", work_kind="replay")  # same page (/cart), other layout
+    lead(graph, a["checkout_empty"], CART_EMPTY, release="v2", work_kind="replay")  # lands on another page
+    kinds = {r["action"]: r["change"] for r in graph.run("Q19", {"previous": "v1", "release": "v2"})}
+    assert kinds == {a["search_add"]: "broken", a["cart_icon"]: "variant", a["checkout_empty"]: "moved"}
+    from clew.scheduler import regressions
+
+    filed = regressions.process(graph, "v1", "v2")
+    assert len(filed) == 2 and not any(a["cart_icon"].split("#")[1] in s for s in filed)
+
+
+def test_claim_renewal_and_loss(graph):
+    state(graph, HOME, "Home", entry=True)
+    k = action(graph, HOME, "b", "B")
+    assert graph.one("Q06", {"agent": "e1", "now": 0, "lease_ms": LEASE})["action"] == k
+    assert graph.one("Q58", {"action": k, "agent": "e1", "now": 100_000})  # still mine: lease extended
+    assert graph.one("Q06", {"agent": "e2", "now": 150_000, "lease_ms": LEASE}) is None  # renewed, not free
+    assert graph.one("Q06", {"agent": "e2", "now": 300_000, "lease_ms": LEASE})["action"] == k  # expired → e2
+    assert graph.one("Q58", {"action": k, "agent": "e1", "now": 300_001}) is None  # e1 lost it and must drop it
+    graph.run(
+        "Q12",
+        {
+            "action": k,
+            "release": "v1",
+            "sig": "s",
+            "kind": "pageerror",
+            "title": "t",
+            "initial_status": "new",
+            "severity": "P2",
+            "evidence": "{}",
+            "now": 1,
+        },
+    )
+    graph.run("Q13", {"sig": "s", "release": "v1", "payload": "{}", "now": 2})
+    j = graph.one("Q05", {"agent": "e1", "now": 10, "lease_ms": 180_000})
+    assert graph.one("Q58b", {"id": j["id"], "agent": "e1", "now": 20})
+    assert graph.one("Q58b", {"id": j["id"], "agent": "e2", "now": 20}) is None

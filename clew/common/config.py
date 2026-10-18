@@ -13,11 +13,28 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = Path(os.environ.get("CLEW_CONFIG_DIR", ROOT / "config"))
 
 
+def app_name() -> str:
+    """Which app under test Clew is pointed at (CLEW_APP, default "nebula")."""
+    return os.environ.get("CLEW_APP", "nebula").strip() or "nebula"
+
+
 @cache
 def load(name: str) -> dict[str, Any]:
-    """Load config/<name>.yaml as a dict."""
-    with open(CONFIG_DIR / f"{name}.yaml") as f:
+    """Load config/<name>.yaml, or config/apps/<CLEW_APP>/<name>.yaml when that app overrides it."""
+    path = CONFIG_DIR / "apps" / app_name() / f"{name}.yaml"
+    if not path.exists():
+        path = CONFIG_DIR / f"{name}.yaml"
+    with open(path) as f:
         return yaml.safe_load(f) or {}
+
+
+def seed_graph() -> str:
+    """The empty-map graph that fresh maps are copied from (one per app)."""
+    return f"{app_name()}_seed"
+
+
+def v1_snapshot() -> str:
+    return f"{app_name()}_v1_map"
 
 
 def env(name: str, default: str = "") -> str:

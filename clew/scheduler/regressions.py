@@ -20,6 +20,8 @@ log = get("regressions")
 def process(graph: Graph, previous: str, release: str) -> list[str]:
     filed = []
     for row in graph.run("Q19", {"previous": previous, "release": release}):
+        if row["change"] == "variant":
+            continue  # same page, different layout or data: shown in the release diff, not filed
         sig = signatures.regression(row["action"])
         known = graph.one("Q38", {"sig": sig}, read_only=True)
         if known and row["action"] in known["triggers"]:

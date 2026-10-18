@@ -112,7 +112,7 @@ Indexes: `State.key`, `Action.key`, `Action.status`, `Bug.sig`, `Job.id`, `Job.s
 
 ## Cypher queries and graph algorithms
 
-All Cypher lives in [`clew/graph/queries/`](clew/graph/queries/): one parameterized file per query with a header (purpose, parameters, callers), loaded by ID. Nothing is concatenated into Cypher and no model writes Cypher. The generated catalog of all 69 queries is [`docs/cypher.md`](docs/cypher.md) (`make docs`).
+All Cypher lives in [`clew/graph/queries/`](clew/graph/queries/): one parameterized file per query with a header (purpose, parameters, callers), loaded by ID. Nothing is concatenated into Cypher and no model writes Cypher. The generated catalog of all 71 queries is [`docs/cypher.md`](docs/cypher.md) (`make docs`).
 
 | Graph technique | Query | What Clew uses it for |
 |---|---|---|
@@ -242,6 +242,8 @@ uv run python -m clew.graph.seed
 uv run python -m clew.dev --explorers 4 --minutes 5      # watcher + reporter + explorers in one process
 uv run uvicorn clew.api.app:app --port 8081              # the war room
 ```
+
+How to run a session, read the war room and check that the agents navigate by the graph: [`docs/running.md`](docs/running.md).
 
 ### Tests
 

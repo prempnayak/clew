@@ -19,7 +19,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from clew.common.config import env, graph_name, lease_ms, load, shop_url
+from clew.common.config import env, graph_name, lease_ms, load, seed_graph, shop_url
 from clew.common.ids import now_ms, short_id
 from clew.common.log import get, kv
 from clew.explorer import locate as locate_mod
@@ -76,6 +76,7 @@ class Explorer:
         self.session = "S-0"
         self.release = "v1"
         self.pending_llm = 0
+        self.work: Work | None = None  # the item being worked on right now (never kept between items)
         self.screens = Path(env("CLEW_SCREENSHOTS", "artifacts/screenshots"))
 
     # -- claims ---------------------------------------------------------------------------------------------------
@@ -127,6 +128,7 @@ class Explorer:
                 return True
             self.heartbeat("idle")
             return False
+        self.work = work
         self.heartbeat("working", f"{work.kind}:{work.target}")
         self.graph.publish("claim", agent=self.name, kind=work.kind, target=work.target)
         log.info(kv(agent=self.name, claimed=work.kind, target=work.target))
@@ -139,6 +141,21 @@ class Explorer:
                 await self.reproduce(work)
         except Exception as e:  # noqa: BLE001 - one failed item must not kill the worker; its claim will lapse
             log.exception(kv(agent=self.name, failed=work.target, error=str(e)))
+        finally:
+            self.work = None
+        return True
+
+    def renew(self) -> bool:
+        """Extend the current claim's lease (Q58, Q58b). False if it was lost: the lease ran out (a slow page
+        read, a long route) and another explorer took the work, so this explorer must drop it."""
+        w = self.work
+        if w is None:
+            return True
+        now = now_ms()
+        if w.job_id:
+            return self.graph.one("Q58b", {"id": w.job_id, "agent": self.name, "now": now}) is not None
+        if w.kind in ("explore", "mission"):
+            return self.graph.one("Q58", {"action": w.target, "agent": self.name, "now": now}) is not None
         return True
 
     async def bootstrap(self) -> None:
@@ -300,6 +317,9 @@ class Explorer:
                     return None
                 return await self.walk(page, obs, rest, done.arrival, replans - 1)
             here = done.arrival
+            if not self.renew():
+                log.info(kv(agent=self.name, lost_claim=self.work.target if self.work else None))
+                return None
         return here
 
     async def go_to(self, page, obs: Observer, state: str) -> Arrival | None:
@@ -333,10 +353,7 @@ class Explorer:
         """The element is gone: try the candidate that plays the same role (§10.8). If it reaches a page this
         action reached before, it's a rename: update the selector (Q21) and remember it as a Fact."""
         state = self.graph.one("Q42", {"key": here.key}, read_only=True) or {"actions": []}
-        taken = {a["name"] for a in state["actions"] if a.get("key") and a["key"] != details["key"]}
-        taken |= {
-            n for a in state["actions"] if a.get("key") and a["key"] != details["key"] for n in (a.get("aliases") or [])
-        }
+        taken = names_of_other_elements(state["actions"], details)
         outcomes = self.graph.run("Q48", {"action": details["key"]}, read_only=True)
         known = {o["target"] for o in outcomes if o["ok"]}
         target_name = next((o["target_name"] for o in outcomes if o["ok"]), "")
@@ -400,7 +417,10 @@ class Explorer:
 
     async def perform_and_record(
         self, page, obs: Observer, work: Work, d: dict, here: Arrival, instance: int
-    ) -> Outcome:
+    ) -> Outcome | None:
+        if not self.renew():
+            log.info(kv(agent=self.name, lost_claim=work.target, note="another explorer has it now"))
+            return None
         out = await self.act(page, obs, d, here, instance, heal=work.kind in ("replay", "confirm", "verify_fix"))
         events = obs.take()
         if out.arrival is None:
@@ -409,25 +429,36 @@ class Explorer:
             events.append(Event("nav_timeout", out.performed.error or "element missing"))
         values = await testid_values(page)
         problems = problems_from(events, out.arrival.route, out.arrival.key, d["key"], values)
-        hard = [p for p in problems if p.status == "new"]
+        # The edge is broken (cost 1000, routes go around it) only when navigation itself failed: a server error,
+        # an uncaught error or a missing element. A content rule failing on a page that loaded is still a bug,
+        # but routes may pass through it, or the page behind it could never be explored (docs/decisions.md).
+        hard = [p for p in problems if p.status == "new" and p.kind != "rule"]
         ok = out.performed.ok and not hard
         out.problems, out.ok = problems, ok
         error = (hard[0].message if hard else out.performed.error) if not ok else None
-        self.graph.run(
-            "Q07",
-            {
-                "action": d["key"],
-                "target": out.arrival.key,
-                "release": self.release,
-                "ok": ok,
-                "error": error,
-                "ms": out.ms,
-                "agent": self.name,
-                "work_kind": work.kind,
-                "via": json.dumps({"actions": here.path, "states": here.states}),
-                "now": now_ms(),
-            },
+        # Edges describe the default instance (the one routes use). Another instance (variation mode, or a repro
+        # of a bug found on, say, the 8th product) only adds an edge to a page not reached before; it never
+        # overwrites the default's outcome (docs/decisions.md).
+        known = instance != 0 and any(
+            o["release"] == self.release and o["target"] == out.arrival.key
+            for o in self.graph.run("Q48", {"action": d["key"]}, read_only=True)
         )
+        if not known:
+            self.graph.run(
+                "Q07",
+                {
+                    "action": d["key"],
+                    "target": out.arrival.key,
+                    "release": self.release,
+                    "ok": ok,
+                    "error": error,
+                    "ms": out.ms,
+                    "agent": self.name,
+                    "work_kind": work.kind,
+                    "via": json.dumps({"actions": here.path, "states": here.states}),
+                    "now": now_ms(),
+                },
+            )
         step = self.graph.one(
             "Q08",
             {
@@ -552,6 +583,8 @@ class Explorer:
                 if here is None:
                     continue
                 out = await self.perform_and_record(page, obs, work, d, here, 0)
+                if out is None:  # the job's lease ran out and another explorer has it
+                    return
                 self.finish(work, "done", f"{'ok' if out.ok else 'failed'} → {out.arrival.key}")
                 return
             finally:
@@ -602,6 +635,8 @@ class Explorer:
                 reached = True
                 instance = int((evidence.get("instance") or {}).get("index", 0))
                 out = await self.perform_and_record(page, obs, work, trigger.details, here, instance)
+                if out is None:  # the job's lease ran out and another explorer has it
+                    return
                 if bug["kind"] == "regression":
                     reproduced = (not out.ok) or out.arrival.key != evidence.get("was_target_key")
                 else:
@@ -659,10 +694,21 @@ class Explorer:
         self.heartbeat("stopped")
 
 
+def names_of_other_elements(actions: list[dict], details: dict) -> set[str]:
+    """Names (and old names) of the page's *other* elements, which a heal must not pick. The other input cases
+    of the same form (keys that differ only in the final `:case`) are the same element, so a sibling case that
+    was healed first doesn't block this one."""
+    key = details["key"]
+    element = key.rsplit(":", 1)[0] + ":" if details["kind"] == "fill_submit" else key
+    others = [a for a in actions if a.get("key") and a["key"] != key and not a["key"].startswith(element)]
+    return {a["name"] for a in others} | {n for a in others for n in (a.get("aliases") or [])}
+
+
 def account_for(n: int) -> Account:
-    """explorer-n uses explorer{(n - 1) mod 8 + 1}@nebula.test."""
+    """explorer-n uses test account (n - 1) mod 8 + 1 (email pattern `account_email` in config/scope.yaml)."""
     i = (n - 1) % 8 + 1
-    return Account(f"explorer{i}@nebula.test", env("SHOP_EXPLORER_PASSWORD") or "nebula-pass")
+    pattern = load("scope").get("account_email", "explorer{i}@nebula.test")
+    return Account(pattern.format(i=i), env("SHOP_EXPLORER_PASSWORD") or "nebula-pass")
 
 
 async def main_async(count: int, minutes: float | None, idle_exit_s: float | None, graph: str | None) -> None:
@@ -680,7 +726,7 @@ async def main_async(count: int, minutes: float | None, idle_exit_s: float | Non
             name = f"explorer-{n}"
             g = shared
             if mode == "isolated":  # S5 baseline: a private copy of the seed, no shared claims or memory
-                g = reset_from(db, "nebula_seed", f"iso_{name}")
+                g = reset_from(db, seed_graph(), f"iso_{name}")
             explorers.append(Explorer(g, name, browser, account_for(n)))
         await asyncio.gather(*(e.run(deadline, idle_exit_s) for e in explorers))
         await browser.close()

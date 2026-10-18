@@ -11,14 +11,12 @@ import json
 
 import httpx
 
-from clew.common.config import env, env_int, load, shop_url
+from clew.common.config import env, env_int, load, seed_graph, shop_url, v1_snapshot
 from clew.common.ids import now_ms
 from clew.explorer.extract import Candidate
 from clew.graph.client import Graph, reset_from
-from clew.graph.seed import SEED, seed
+from clew.graph.seed import seed
 from clew.mcp_server.tools import CaseIn, Tools
-
-V1_SNAPSHOT = "nebula_v1_map"
 
 
 class OpError(Exception):
@@ -53,10 +51,10 @@ def controller(path: str, payload: dict | None = None) -> dict:
 
 
 def reset_map(graph: Graph) -> Graph:
-    """Fresh map: GRAPH.COPY nebula_seed → the live graph (seeding first if needed)."""
-    if not Graph(graph.db, SEED).exists():
+    """Fresh map: GRAPH.COPY <app>_seed → the live graph (seeding first if needed)."""
+    if not Graph(graph.db, seed_graph()).exists():
         return seed(graph.db, graph.name)
-    return reset_from(graph.db, SEED, graph.name)
+    return reset_from(graph.db, seed_graph(), graph.name)
 
 
 def reset_all(graph: Graph) -> dict:
@@ -65,7 +63,8 @@ def reset_all(graph: Graph) -> dict:
     return {"ok": True, "graph": graph.name, "release": "v1"}
 
 
-def snapshot(graph: Graph, name: str = V1_SNAPSHOT) -> dict:
+def snapshot(graph: Graph, name: str | None = None) -> dict:
+    name = name or v1_snapshot()
     reset_from(graph.db, graph.name, name)
     return {"ok": True, "snapshot": name}
 
@@ -91,10 +90,10 @@ def start_session(
     if start_from == "fresh":
         reset_all(graph)
     elif start_from == "v1_snapshot":
-        if not Graph(graph.db, V1_SNAPSHOT).exists():
+        if not Graph(graph.db, v1_snapshot()).exists():
             raise OpError("no v1 snapshot yet (make snapshot-v1)")
         store_reset()
-        reset_from(graph.db, V1_SNAPSHOT, graph.name)
+        reset_from(graph.db, v1_snapshot(), graph.name)
     rel = graph.one("Q37", read_only=True)
     sid = graph.one(
         "Q34a",

@@ -9,6 +9,8 @@ fields:
   - {match: '(?i)password', valid: '{{account.password}}', invalid: 'wrong-password', empty: ''}
   - {match: '(?i)search|query', valid: 'star', invalid: 'zzzzqqq', empty: ''}
   - {match: '(?i)code', valid: '{{page.code}}', invalid: 'BADCODE', empty: ''}
+  - {match: '(?i)quantity|qty|tickets?|number of|how many', valid: '2', invalid: '0', empty: ''}
+  - {match: '(?i)phone|mobile', valid: '+44 7700 900123', invalid: 'abc', empty: ''}
   - {match: '(?i)name', valid: 'Ada Lovelace', invalid: '', empty: ''}
   - {match: '(?i)address|street', valid: '1 Orbit Way', invalid: '', empty: ''}
   - {match: '(?i)city', valid: 'Bengaluru', invalid: '', empty: ''}

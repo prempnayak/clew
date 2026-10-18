@@ -74,7 +74,7 @@ def main() -> None:
     r = sub.add_parser("release")
     r.add_argument("release")
     sn = sub.add_parser("snapshot")
-    sn.add_argument("name", nargs="?", default=ops.V1_SNAPSHOT)
+    sn.add_argument("name", nargs="?", default=None)
     m = sub.add_parser("mission")
     m.add_argument("--state", required=True)
     m.add_argument("--text", required=True)

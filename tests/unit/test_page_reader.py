@@ -102,3 +102,15 @@ def test_heal_prefers_the_renamed_button_over_other_actions():
     assert best.name == "Add to bag" and calls == 0
     none, _ = heal_candidate("button", "Checkout now", "Cart", cands, taken={"add to wishlist"})
     assert none is None
+
+
+def test_heal_ignores_sibling_cases_of_the_same_form():
+    from clew.explorer.worker import names_of_other_elements
+
+    actions = [
+        {"key": "/p|out|x#form:qty:valid", "name": "buy tickets", "aliases": ["book tickets"]},  # healed already
+        {"key": "/p|out|x#form:qty:invalid", "name": "book tickets", "aliases": []},
+        {"key": "/p|out|x#button:save", "name": "save", "aliases": []},
+    ]
+    taken = names_of_other_elements(actions, {"key": "/p|out|x#form:qty:invalid", "kind": "fill_submit"})
+    assert taken == {"save"}  # the healed sibling's new name is not "taken"

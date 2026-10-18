@@ -68,3 +68,20 @@ One dated line per verified fact or design change. When the plan (`docs/handoff.
   - B4 at 166 s vs never.
   
   The LLM backend was off for both modes because LM Studio serves one request at a time, so the isolated mode would mostly have measured queueing for the model. Every fresh session resets its graph, so all sessions are numbered S-1.
+
+## 2026-10-18
+
+- **Clew is app-aware through `CLEW_APP`** (default `nebula`):
+  - per-app config overrides live in `config/apps/<app>/` (route patterns, which pages the money rules check, test-account emails);
+  - seed and snapshot graphs are named `<app>_seed` and `<app>_v1_map`;
+  - the test-account email pattern lives in `scope.yaml`.
+  
+  Pointing the swarm at another app is configuration only. We tried it with a second, blind-test app; it is not part of the submission.
+- **Generic input rules for number and phone fields** in `config/inputs.yaml`. Without them the deterministic reader typed "test" into `<input type=number>`, which Playwright refuses.
+- **A content rule failing no longer marks the transition broken.** Only a navigation failure does (5xx, uncaught error, missing element). The bug is still recorded and confirmed as before, but routes may pass through the page. Before this, a page reachable only through such a transition had a route cost ≥ 1000, so its actions were never tested. Found in a smoke run against a second app (18 route failures before the change, 0 after).
+- **Fixes from the second-app blind test** (it found 5 of 5 planted bugs in v1 and caught every real v2 change, but filed false regressions):
+  1. **The release diff (Q19) classifies each change:** `broken` (it now fails), `moved` (it works but lands on another page), or `variant` (same page, different layout). Only broken and moved are filed; variants are listed in the diff as "changed layout". A list that was full for one test account and empty for another had been filed as a regression on every page that links to it.
+  2. **A heal no longer refuses the name a sibling case already took.** A form's valid, invalid and empty cases are one element. Once the first case was healed to the new button name, the other cases saw that name as "taken" and recorded "element missing".
+  3. **Only the default instance writes an action's edge.** Variation runs, and repros of a bug found on a later instance, only add an edge to a page not reached before. Before, the 3rd item of a link group could overwrite the 1st item's outcome, so the v1 and v2 records disagreed depending on which instance ran last.
+  4. **One regression per form, not per input case.** The regression signature drops the case (`regression|<route>|<hash8>#form:<fields>`).
+  5. **Claims are renewed while the work is in progress (Q58, Q58b), and work whose claim was lost is dropped.** With a slow local model, a route through several new pages could outlast the 120 s lease; another explorer then took the action, the first one finished it anyway, and Q32 counted a duplicate.

@@ -174,12 +174,14 @@ def diff(previous: str | None = None, current: str | None = None) -> dict:
     if not previous or not current:
         prev = graph().one("Q49", read_only=True)
         if not prev:
-            return {"previous": None, "current": None, "regressions": [], "changes": None}
+            return {"previous": None, "current": None, "regressions": [], "variants": [], "changes": None}
         previous, current = prev["previous"], prev["current"]
+    rows = q("Q19", {"previous": previous, "release": current})
     return {
         "previous": previous,
         "current": current,
-        "regressions": q("Q19", {"previous": previous, "release": current}),
+        "regressions": [r for r in rows if r["change"] != "variant"],  # broken or moved: filed as bugs
+        "variants": [r for r in rows if r["change"] == "variant"],  # same page, other layout or data: not filed
         "changes": graph().one("Q54", {"release": current}, read_only=True),
         "replays_pending": graph().one("Q39", {"kind": "replay", "release": current}, read_only=True),
     }

@@ -28,8 +28,8 @@ rollback:
 	$(API) clew.cli release v1
 mission:           ## make mission STATE='/cart|in|…' TEXT='Test invalid coupon codes'
 	$(API) clew.cli mission --state "$(STATE)" --text "$(TEXT)"
-snapshot-v1:       ## freeze the current map as nebula_v1_map
-	$(API) clew.cli snapshot nebula_v1_map
+snapshot-v1:       ## freeze the current map as <app>_v1_map (CLEW_APP in .env)
+	$(API) clew.cli snapshot
 replay:            ## make replay BUG=<sig>: replay a bug's steps in a visible browser (local)
 	uv run python -m clew.cli replay --bug "$(BUG)" --headed
 score:

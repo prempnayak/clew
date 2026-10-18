@@ -4,3 +4,4 @@ deny_paths: ['^/__', '^mailto:', '^tel:', '^javascript:']
 max_candidates_per_page: 30
 max_input_length: 200
 release_meta: app-release              # <meta name="app-release"> on the store's pages
+account_email: "explorer{i}@nebula.test"   # test accounts the explorers log in with (i = 1..8)

@@ -42,8 +42,11 @@ def nav_timeout(state_key: str, action_key: str) -> str:
 
 
 def regression(action_key: str) -> str:
-    """`regression|<route>|<hash8>#<role:target>`: the action key without its auth part, so the same broken
-    button seen logged in and logged out is one regression (both actions become its triggers)."""
+    """`regression|<route>|<hash8>#<role:target>`: the action key without its auth part, and for forms without
+    the input case, so the same broken button (logged in or out) or form (valid, invalid or empty input) is one
+    regression; every affected action becomes one of its triggers."""
     state, _, rest = action_key.partition("#")
     route, _auth, h = state.rsplit("|", 2)
+    if rest.startswith("form:"):
+        rest = rest.rsplit(":", 1)[0]
     return f"regression|{route}|{h}#{rest}"

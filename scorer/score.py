@@ -21,7 +21,7 @@ import httpx
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-ANSWER_KEY = ROOT / "shop" / "planted_bugs.yaml"
+ANSWER_KEYS = {"nebula": ROOT / "shop" / "planted_bugs.yaml"}  # other apps: blind tests, no key in the repo
 REPORTED = {"filed", "fixed"}
 
 
@@ -41,7 +41,8 @@ def host_env() -> None:
 
 
 def score(graph, routes: dict[str, list[str]] | None, session: dict | None) -> dict:
-    key = yaml.safe_load(ANSWER_KEY.read_text())
+    path = ANSWER_KEYS.get(os.environ.get("CLEW_APP", "nebula"))
+    key = yaml.safe_load(path.read_text()) if path and path.exists() else {"bugs": [], "decoys": []}
     bugs = graph.run("Q33", read_only=True)
     releases = sorted({b["release_found"] for b in bugs if b["release_found"]} | {"v1"})
     started = session["started_at"] if session else min((b["first_seen"] for b in bugs), default=0)
@@ -104,6 +105,7 @@ def markdown(s: dict) -> str:
     lines = [
         f"## Score: {s['graph']} {s['session'] or ''} (releases {', '.join(s['releases'])})",
         "",
+        "No answer key for this app (blind test): every reported bug is listed as 'other'." if not s["planted"] else "",
         f"Recall **{s['recall']}** · decoys reported **{s['decoys_reported']}** · other reported bugs "
         f"**{len(s['other_reported'])}** · duplicate executions **{s['duplicate_executions']}**",
         "",

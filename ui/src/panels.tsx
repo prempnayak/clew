@@ -84,11 +84,15 @@ export function Diff({ diff, onPickBug }: { diff: any; onPickBug: (sig: string) 
       <p className="diffline">
         <span className="bad">✗ {diff.regressions.length} regression(s)</span> · ↻ {(c.renames ?? []).length} renamed ·
         <span className="good"> ✓ {fixed.length} fixed</span> · ＋ {pages.length} new page(s) · {still.length} still present
+        {diff.variants?.length ? ` · ~ ${diff.variants.length} changed layout (not filed)` : ""}
         {diff.replays_pending?.pending ? ` · ${diff.replays_pending.pending} replays pending` : ""}
       </p>
       <ul className="small">
         {diff.regressions.map((r: any) => (
-          <li key={r.action}>✗ <b>{r.label}</b> on {r.page}: was {r.was_target}, now {r.now_target}{r.error ? ` (${r.error.slice(0, 70)})` : ""}</li>
+          <li key={r.action}>✗ <b>{r.label}</b> on {r.page} ({r.change}): was {r.was_target}, now {r.now_target}{r.error ? ` (${r.error.slice(0, 70)})` : ""}</li>
+        ))}
+        {(diff.variants ?? []).map((r: any) => (
+          <li key={r.action} className="muted">~ {r.label} on {r.page}: same page, different layout ({r.now_target})</li>
         ))}
         {(c.renames ?? []).map((t: string) => <li key={t}>↻ {t}</li>)}
         {fixed.map((f: any) => <li key={f.sig} onClick={() => onPickBug(f.sig)}>✓ #{f.issue} {f.title}</li>)}

@@ -71,3 +71,9 @@ def test_regression_signature_ignores_auth():
     a = signatures.regression("/search?q|out|cdf65eef#button:add to cart")
     b = signatures.regression("/search?q|in|cdf65eef#button:add to cart")
     assert a == b == "regression|/search?q|cdf65eef#button:add to cart"
+
+
+def test_regression_signature_merges_input_cases_of_a_form():
+    a = signatures.regression("/|out|aaaa#form:search events:valid")
+    b = signatures.regression("/|in|aaaa#form:search events:invalid")
+    assert a == b == "regression|/|aaaa#form:search events"

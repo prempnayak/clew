@@ -26,7 +26,7 @@ log = get("reporter")
 AGENT = "reporter"
 EXPECTED = {"confirmed": ["file_issue", "mark_same_as"], "fixed": ["close_issue"], "needs_comment": ["comment_issue"]}
 
-INSTRUCTION = """You are the Reporter in Clew, a team of automated testers for the Nebula Gear store.
+INSTRUCTION = """You are the Reporter in Clew, a team of automated testers for a web app under test.
 You receive one bug that needs attention. Use only your tools; never invent steps, values or ids.
 - Status confirmed: call get_bug, repro_steps and similar_bugs. If another bug clearly has the same
   root cause (same_trigger, or a regression on the same action), call mark_same_as instead of filing.
