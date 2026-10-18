@@ -1,4 +1,4 @@
-"""S5: the same session in two modes, several times each (handoff §5, §13.5).
+"""S5: the same session in two modes, several times each.
 
 - shared: the normal design, one map, claims and memory in one graph;
 - isolated: each explorer gets a private copy of the seed (iso_<agent>): no shared claims, facts or routes.

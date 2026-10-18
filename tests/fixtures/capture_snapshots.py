@@ -1,4 +1,4 @@
-"""Capture ARIA snapshot fixtures of every Nebula Gear page (handoff §10.10).
+"""Capture ARIA snapshot fixtures of every Nebula Gear page.
 
 Usage (store running on SHOP_URL with SHOP_ADMIN_TOKEN):
     uv run python -m tests.fixtures.capture_snapshots

@@ -78,20 +78,33 @@ More, including how to watch the agents' queries live and query the graph yourse
 
 ## Hosted deployment
 
-One Google Cloud VM runs everything behind Caddy with automatic HTTPS:
+One Google Cloud Compute Engine VM (`e2-standard-4`) runs everything, behind Caddy with automatic HTTPS. You need a Google Cloud project with billing, and the `gcloud` CLI (`brew install --cask google-cloud-sdk`, then `gcloud auth login`).
 
 ```bash
-export PROJECT_ID=your-project LLM=vertex    # or LLM=off
-deploy/gcp.sh create                         # VM, static IP, firewall, Docker
-deploy/gcp.sh push                           # uploads the code and a hosted .env; prints the URLs
+export PROJECT_ID=your-project
+export LLM=vertex            # Gemini through the VM's service account (no keys), or LLM=off
+deploy/gcp.sh create         # APIs, service account, static IP, firewall (80/443 + IAP SSH), VM with Docker
+deploy/gcp.sh push           # uploads the code and a hosted .env with fresh secrets, builds, starts, seeds
+deploy/gcp.sh status         # containers and URL · logs: follow logs · ssh: a shell on the VM
+deploy/gcp.sh destroy        # delete the VM, IP and firewall rules when you're done
 ```
 
-You get two public addresses:
+`push` prints two public addresses:
 
 - `https://<ip>.sslip.io` for the war room;
 - `https://shop.<ip>.sslip.io` for the demo store, so visitors can click around the app the testers test.
 
-The store's `/__*` test hooks, FalkorDB, the MCP server and the controller are never reachable from outside. Hosted mode caps sessions at 4 testers and 10 minutes, one at a time, with a daily limit, and files GitHub issues in dry-run mode only. Step-by-step guide, costs and teardown: [`docs/deploy.md`](docs/deploy.md). Demo video runbook: [`docs/demo-script.md`](docs/demo-script.md).
+sslip.io resolves to the VM's IP, so no domain is needed. Set `CLEW_DOMAIN` to use your own.
+
+The store's `/__*` test hooks, FalkorDB, the MCP server and the controller are never reachable from outside.
+
+Hosted mode (`HOSTED_MODE=true`):
+
+- caps sessions at 4 testers and 10 minutes, one at a time, with a daily limit;
+- disables "Restart services";
+- files GitHub issues in dry-run mode only.
+
+To redeploy after a change, commit and run `deploy/gcp.sh push` again; the VM keeps its `.env`. The VM costs roughly $0.15 an hour, so remember `destroy`.
 
 ## Testing your own website
 
@@ -269,7 +282,7 @@ All Cypher lives in [`clew/graph/queries/`](clew/graph/queries/): one parameteri
 | **Dedup with `MERGE`** | Q12, Q25 | One bug per signature with many sightings; one fact stored once |
 | **`GRAPH.COPY`** | `clew/graph/client.py` | Fresh maps from the seed, the v1 snapshot, the isolated S5 baseline |
 
-FalkorDB behaviours we hit (in [`docs/decisions.md`](docs/decisions.md)):
+FalkorDB behaviours we hit while building it:
 
 - `algo.SPpaths` yields nothing when the source equals the target, so Q11 has a second branch.
 - A pattern in `RETURN` returns paths, not a boolean.
@@ -359,7 +372,6 @@ uv run uvicorn clew.api.app:app --port 8081              # the war room
 
 - **Prior art.** Building a state graph of a web app is not new; research crawlers such as Crawljax built state-flow graphs years ago. Clew's contribution is the combination: several LLM-assisted agents coordinating through one graph database, memory across sessions and releases, model-chosen inputs and page understanding, and repro steps and regression diffs computed as graph queries.
 - **The fingerprint is the riskiest part.** It is tested on snapshots of every store page (`tests/unit/test_fingerprint.py`). A real app would need its own `config/fingerprint.yaml` tuning.
-- **Plan vs reality.** Where the plan and reality disagreed, the change is written down in [`docs/decisions.md`](docs/decisions.md).
 
 ## AI-assistant disclosure
 

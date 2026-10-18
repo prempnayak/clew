@@ -1,8 +1,8 @@
-"""The explorer worker (handoff §11.1): claim work from the graph, walk the shortest known route to it, act,
+"""The explorer worker: claim work from the graph, walk the shortest known route to it, act,
 observe, record. It keeps no work state between items: everything it knows comes from FalkorDB.
 
 Every work item starts in a fresh, logged-out browser context at the entry page, so a route always replays from
-scratch and the map's edges mean the same thing for every explorer (docs/decisions.md).
+scratch and the map's edges mean the same thing for every explorer.
 
 Run one explorer:          python -m clew.explorer.worker
 Run several in-process:     python -m clew.explorer.worker --count 4 --minutes 10
@@ -431,14 +431,14 @@ class Explorer:
         problems = problems_from(events, out.arrival.route, out.arrival.key, d["key"], values)
         # The edge is broken (cost 1000, routes go around it) only when navigation itself failed: a server error,
         # an uncaught error or a missing element. A content rule failing on a page that loaded is still a bug,
-        # but routes may pass through it, or the page behind it could never be explored (docs/decisions.md).
+        # but routes may pass through it, or the page behind it could never be explored.
         hard = [p for p in problems if p.status == "new" and p.kind != "rule"]
         ok = out.performed.ok and not hard
         out.problems, out.ok = problems, ok
         error = (hard[0].message if hard else out.performed.error) if not ok else None
         # Edges describe the default instance (the one routes use). Another instance (variation mode, or a repro
         # of a bug found on, say, the 8th product) only adds an edge to a page not reached before; it never
-        # overwrites the default's outcome (docs/decisions.md).
+        # overwrites the default's outcome.
         known = instance != 0 and any(
             o["release"] == self.release and o["target"] == out.arrival.key
             for o in self.graph.run("Q48", {"action": d["key"]}, read_only=True)

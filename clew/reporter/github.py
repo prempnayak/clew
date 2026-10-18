@@ -1,4 +1,4 @@
-"""GitHub issues for our own repo only (handoff §12.6). GITHUB_FILING = on | dry_run | off.
+"""GitHub issues for our own repo only. GITHUB_FILING = on | dry_run | off.
 
 dry_run (hosted judge sessions) numbers issues from a graph counter and keeps them in the UI only.
 

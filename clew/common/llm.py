@@ -1,4 +1,4 @@
-"""Structured-output calls to the configured model (handoff §11.2, Appendix D).
+"""Structured-output calls to the configured model.
 
 LLM_BACKEND chooses the provider and config/models.yaml the model per use:
 - vertex / gemini_api: google-genai with `response_schema` and `thinking_level`;

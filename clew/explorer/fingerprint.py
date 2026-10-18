@@ -1,4 +1,4 @@
-"""State fingerprint: `route|auth|hash8` (handoff §10.2). The riskiest part of Clew, so it is config-driven
+"""State fingerprint: `route|auth|hash8`. The riskiest part of Clew, so it is config-driven
 (config/fingerprint.yaml) and tested on snapshot fixtures of every store page (tests/unit/test_fingerprint.py).
 
 - route: URL path with id-like segments as `:id` (plus configured patterns), query keys sorted, values dropped.

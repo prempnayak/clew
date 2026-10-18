@@ -1,4 +1,4 @@
-"""Find the element that now plays a saved step's role (self-healing selectors, handoff §10.8).
+"""Find the element that now plays a saved step's role (self-healing selectors).
 
 1. Deterministic: same role, similar name (difflib ratio ≥ 0.5) among the page's current candidates,
    excluding candidates that already belong to another action on this page.

@@ -1,4 +1,4 @@
-"""The page reader: one call per new page, claimed through the graph so it runs once (handoff §10.5).
+"""The page reader: one call per new page, claimed through the graph so it runs once.
 
 Two implementations behind one function:
 - LLM (Gemini, structured output): names the page and proposes actions and input cases.

@@ -1,4 +1,4 @@
-"""Config loading: YAML files in config/ plus environment variables (CLAUDE.md rule 8)."""
+"""Config loading: YAML files in config/ plus environment variables."""
 
 from __future__ import annotations
 

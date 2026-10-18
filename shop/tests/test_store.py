@@ -1,4 +1,4 @@
-"""Every planted bug and decoy behaves as specified, per release (handoff §20, Appendix A)."""
+"""Every planted bug and decoy behaves as specified, per release."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 # The hidden answer key. Read only by scorer/score.py. Excluded from every Clew image by .dockerignore
-# and never mounted into a Clew container (CLAUDE.md rule 7).
+# and never mounted into a Clew container.
 bugs:
   - id: B1
     releases: [v1, v2]

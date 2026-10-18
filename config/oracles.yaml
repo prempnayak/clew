@@ -1,4 +1,4 @@
-# Detectors and filters (handoff §12.1)
+# Detectors and filters
 http_5xx: {same_origin_only: true}
 pageerror: {same_origin_only: true}
 console_error: {as: suspect}

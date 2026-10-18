@@ -1,4 +1,4 @@
-"""Clew's MCP server (MCP Python SDK 2.x, `MCPServer`), streamable HTTP at /mcp (handoff §14).
+"""Clew's MCP server (MCP Python SDK 2.x, `MCPServer`), streamable HTTP at /mcp.
 
 Auth: one bearer token per agent (MCP_TOKEN_REPORTER, MCP_TOKEN_STRATEGIST), checked by ASGI middleware on
 `streamable_http_app()` (V10: the SDK's `token_verifier` needs full OAuth metadata settings). Tools read the

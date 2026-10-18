@@ -14,3 +14,10 @@ eval/results/*.json
 *.rdb
 *.aof
 .hosted
+
+# Internal planning and runbooks (kept locally, not published)
+CLAUDE.md
+docs/handoff.md
+docs/decisions.md
+docs/demo-script.md
+docs/deploy.md

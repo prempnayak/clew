@@ -1,4 +1,4 @@
-"""MCP tools: validation, the filing gate and the ToolCall audit trail (handoff §14)."""
+"""MCP tools: validation, the filing gate and the ToolCall audit trail."""
 
 from __future__ import annotations
 

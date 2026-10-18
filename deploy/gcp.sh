@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy Clew to one Compute Engine VM behind Caddy (handoff §21). Run from the repo root on your laptop.
+# Deploy Clew to one Compute Engine VM behind Caddy. Run from the repo root on your laptop.
 #
 #   export PROJECT_ID=your-project            # required
 #   export LLM=vertex                          # vertex (Gemini via the VM's service account) or off

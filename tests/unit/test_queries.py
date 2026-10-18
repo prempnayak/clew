@@ -1,4 +1,4 @@
-"""The query library played through S1–S4 on a Nebula Gear-shaped map (handoff §9, V1)."""
+"""The query library played through S1–S4 on a Nebula Gear-shaped map."""
 
 from __future__ import annotations
 

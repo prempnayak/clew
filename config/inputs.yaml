@@ -1,4 +1,4 @@
-# Default input cases for the deterministic page reader (handoff §10.5 fallback).
+# Default input cases for the deterministic page reader.
 # Fields are matched by their accessible name. A form gets at most `max_cases` cases;
 # each case fills every field with that field's value for the case.
 max_cases: 3

@@ -1,4 +1,4 @@
-"""The regression pipeline (handoff §12.8), run by the watcher once a release's replay jobs have drained.
+"""The regression pipeline, run by the watcher once a release's replay jobs have drained.
 
 For every action whose outcome changed (Q19): the affected pages (Q35, before marking), a `regression` bug
 (Q12, status new, so the Reporter queues its confirmation), and the action marked broken (Q20) so routes avoid it.

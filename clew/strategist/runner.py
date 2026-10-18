@@ -1,4 +1,4 @@
-"""The Strategist (optional, handoff §11.5): every few minutes, one ADK turn over Clew's MCP tools that reads
+"""The Strategist (optional): every few minutes, one ADK turn over Clew's MCP tools that reads
 coverage gaps and adds boundary and invalid input cases to important forms (validated by `add_cases` against
 the page's extracted elements). Missions from humans are handled deterministically by the API
 (clew/api/ops.py), so this agent is a bonus, not a dependency.

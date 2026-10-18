@@ -1,4 +1,4 @@
-"""The tools behind Clew's MCP server (handoff §14.2). Each one is a named query (or two) plus validation.
+"""The tools behind Clew's MCP server. Each one is a named query (or two) plus validation.
 
 `Tools` methods take `agent=` (who is calling, from the bearer token) and return plain dicts:
 `{"ok": true, ...}` or `{"ok": false, "error": ...}`; they never raise to the model. The MCP server wraps them

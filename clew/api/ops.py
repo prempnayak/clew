@@ -1,4 +1,4 @@
-"""Operations shared by the API and the CLI: sessions, store release and reset, missions, snapshots (handoff §16).
+"""Operations shared by the API and the CLI: sessions, store release and reset, missions, snapshots.
 
 Explorer containers are started, killed and restarted by the internal controller (clew/controller); this module
 only asks it over HTTP. Without a controller (local dev), sessions still start and the swarm is run by

@@ -1,4 +1,4 @@
-"""The scorer (handoff §20): the only code that reads the hidden answer key (shop/planted_bugs.yaml).
+"""The scorer: the only code that reads the hidden answer key (shop/planted_bugs.yaml).
 
 It compares the bugs Clew reported (filed or fixed) with the planted bugs and decoys, measures coverage of the
 store's route patterns against /__routes, and reads duplicate executions (Q32) for the session.

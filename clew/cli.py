@@ -1,4 +1,4 @@
-"""Command line for the Makefile (handoff Appendix F).
+"""Command line for the Makefile.
 
 python -m clew.cli reset | session --explorers 4 --minutes 10 --mode shared --start fresh | stop
 python -m clew.cli kill-explorer | restart-all | release v2 | snapshot nebula_v1_map

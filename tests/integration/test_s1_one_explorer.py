@@ -1,4 +1,4 @@
-"""Integration (handoff §20): one explorer with the deterministic page reader, the Reporter and the release
+"""Integration: one explorer with the deterministic page reader, the Reporter and the release
 watcher against the real store must find, confirm and file B2, B3 and B1, with no LLM.
 
 Slow (a few minutes) and needs Chromium: `uv run pytest -m integration`.

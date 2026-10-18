@@ -1,4 +1,4 @@
-"""Observers on a Playwright page: uncaught errors, console errors, 5xx responses and crashes (handoff §12.1)."""
+"""Observers on a Playwright page: uncaught errors, console errors, 5xx responses and crashes."""
 
 from __future__ import annotations
 

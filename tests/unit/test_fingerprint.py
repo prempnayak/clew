@@ -1,4 +1,4 @@
-"""The fingerprint equivalence table (handoff §10.2) on real snapshots of every store page (V2)."""
+"""The fingerprint equivalence table on real snapshots of every store page (V2)."""
 
 from __future__ import annotations
 

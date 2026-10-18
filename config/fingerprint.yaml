@@ -1,4 +1,4 @@
-# State fingerprint rules (handoff §10.2). Tested by tests/unit/test_fingerprint.py.
+# State fingerprint rules. Tested by tests/unit/test_fingerprint.py.
 route_params:              # path segments that are parameters (numeric and hex/uuid are automatic)
   - /category/:slug
 auth_in_pattern: '(?i)\b(log ?out|sign ?out)\b'

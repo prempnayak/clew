@@ -6,7 +6,7 @@
 //          'variant' = it lands on the same page (route) with a different layout, usually different data behind
 //                      it (an empty list for another account). Variants are shown in the diff but not filed.
 //          Actions that already failed somewhere in the previous release are skipped: their outcome depended on
-//          hidden state, so a change there is not evidence of a regression (docs/decisions.md).
+//          hidden state, so a change there is not evidence of a regression.
 // Params: $previous, $release
 // Callers: clew/scheduler/regressions.py, clew/mcp_server/tools.py (release_diff), clew/api/app.py
 MATCH (s:State)-[:HAS_ACTION]->(a:Action)-[was:LEADS_TO {release: $previous}]->(t1:State)

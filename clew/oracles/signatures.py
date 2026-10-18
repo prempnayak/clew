@@ -1,4 +1,4 @@
-"""Bug signatures, one format per kind (handoff §12.2). Same signature = same bug (MERGE in Q12)."""
+"""Bug signatures, one format per kind. Same signature = same bug (MERGE in Q12)."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def console_error(route: str, message: str) -> str:
 
 def rule(rule_id: str, state_key: str) -> str:
     """`rule|<rule id>|<route>|<hash8>`: the state key without its auth part, so the same broken page seen
-    logged in and logged out is one bug (docs/decisions.md)."""
+    logged in and logged out is one bug."""
     route, _auth, h = state_key.rsplit("|", 2)
     return f"rule|{rule_id}|{route}|{h}"
 

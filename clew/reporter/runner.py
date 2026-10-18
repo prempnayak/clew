@@ -1,4 +1,4 @@
-"""The Reporter (handoff §11.3). The runner (code) owns the claim; the model only writes.
+"""The Reporter. The runner (code) owns the claim; the model only writes.
 
 1. Claim one bug at a time with Q15c (statuses new, confirmed, fixed, not_reproduced; pending comments too).
 2. `new` → queue its confirm job (Q13); `not_reproduced` → nothing to write. No LLM for either.

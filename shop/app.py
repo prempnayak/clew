@@ -1,4 +1,4 @@
-"""Nebula Gear: the small astronomy store Clew tests (handoff §7, Appendix A).
+"""Nebula Gear: the small astronomy store Clew tests.
 
 Server-rendered with Jinja2, a little vanilla JS, SQLite. Release v1 or v2 is switched at runtime through the
 test hooks. The planted bugs are listed (for the scorer only) in planted_bugs.yaml.

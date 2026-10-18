@@ -1,4 +1,4 @@
-"""Release watcher and scheduler (handoff §11.4).
+"""Release watcher and scheduler.
 
 - Every few seconds: GET /__version. On a change: Q16 (new release), then replay jobs (Q17) and verify_fix
   jobs (Q18). When the release's replay jobs have drained: the regression pipeline (Q19 → Q35, Q12, Q20).

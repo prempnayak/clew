@@ -1,4 +1,4 @@
-"""Rule checks (handoff §12.1). Each takes the page's data-testid values and returns a failure message or None.
+"""Rule checks. Each takes the page's data-testid values and returns a failure message or None.
 
 Values come from `data-testid` attributes, as a dict testid -> list of texts. config/checks.yaml maps each rule
 to the route patterns it runs on.

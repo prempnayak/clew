@@ -1,4 +1,4 @@
-"""Performing a stored action in the browser (handoff §10.6).
+"""Performing a stored action in the browser.
 
 Locators: links by the route key of their href (link groups pick an instance), everything else by role and
 exact accessible name. Forms fill each field by role and name, then click the submit button.

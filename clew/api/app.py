@@ -1,4 +1,4 @@
-"""War-room API (handoff §15.3): map, bugs, swarm, release diff, Show Cypher, SSE, session controls.
+"""War-room API: map, bugs, swarm, release diff, Show Cypher, SSE, session controls.
 Every read is a named query; the API also serves the built UI from ui/dist.
 
 Run: uvicorn clew.api.app:app --port 8081

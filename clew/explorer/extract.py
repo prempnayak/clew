@@ -1,4 +1,4 @@
-"""Candidate actions, extracted deterministically from the whole page's ARIA snapshot (handoff §10.4).
+"""Candidate actions, extracted deterministically from the whole page's ARIA snapshot.
 
 - Links are grouped by the route key of their URL: 12 product cards become one "Open product" candidate.
 - Buttons are grouped by role and normalized name: every search result's "Add to cart" is one candidate.

@@ -1,4 +1,4 @@
-"""The controller: the only service with the Docker socket (handoff §15.3, §22). Internal only; the API is its
+"""The controller: the only service with the Docker socket. Internal only; the API is its
 only caller, with CONTROLLER_TOKEN. It starts, kills and restarts Clew's own explorer containers, and restarts
 Clew's services for S3. Nothing else.
 

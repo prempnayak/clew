@@ -1,8 +1,8 @@
-"""Turn observed browser events and rule failures into problems (handoff §12.1).
+"""Turn observed browser events and rule failures into problems.
 
 Hard failures (pageerror, 5xx, crash, rule violations) are `new` bugs; console errors are `suspect`.
 During replay work every problem is a `suspect`: replays exist to diff releases, and the regression pipeline
-decides what changed (docs/decisions.md).
+decides what changed.
 """
 
 from __future__ import annotations

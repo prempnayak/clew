@@ -1,4 +1,4 @@
-"""Query loader. Cypher lives only in queries/QNN_name.cypher (CLAUDE.md rule 2).
+"""Query loader. Cypher lives only in queries/QNN_name.cypher.
 
 Each file starts with a header comment:
     // QNN name

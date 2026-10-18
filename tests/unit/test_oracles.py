@@ -1,4 +1,4 @@
-"""Signatures, rule checks and detectors (table-driven, handoff §20)."""
+"""Signatures, rule checks and detectors (table-driven)."""
 
 from __future__ import annotations
 

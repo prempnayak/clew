@@ -1,4 +1,4 @@
-"""Nebula Gear's SQLite database: schema, seed data (handoff Appendix A.2–A.3) and small helpers."""
+"""Nebula Gear's SQLite database: schema, seed data and small helpers."""
 
 from __future__ import annotations
 

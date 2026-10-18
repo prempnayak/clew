@@ -1,4 +1,4 @@
-"""Candidate extraction on the real store snapshots (handoff §10.4)."""
+"""Candidate extraction on the real store snapshots."""
 
 from __future__ import annotations
 

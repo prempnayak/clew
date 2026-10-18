@@ -1,4 +1,4 @@
-"""Page reader validation, merge with defaults, fact filter, and the heal matcher (handoff §10.5, §10.8)."""
+"""Page reader validation, merge with defaults, fact filter, and the heal matcher."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Model IDs and thinking levels per backend (CLAUDE.md rule 8). LLM_BACKEND picks the profile:
+# Model IDs and thinking levels per backend. LLM_BACKEND picks the profile:
 #   vertex | gemini_api → gemini;  openai → openai (any OpenAI-compatible server: LM Studio, vLLM, Ollama);
 #   off → no LLM at all (deterministic page reader and Reporter).
 # Confirm Gemini IDs in the Model Garden (V8). Temperature is never set (Gemini 3 default, as Google recommends).
