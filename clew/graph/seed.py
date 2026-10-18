@@ -20,8 +20,13 @@ def seed(db, live: str, release: str = "v1") -> Graph:
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--graph", default=env("CLEW_GRAPH", "nebula_live"))
+    p.add_argument("--if-missing", action="store_true", help="do nothing if the live graph already exists")
     args = p.parse_args()
-    seed(connect(), args.graph)
+    db = connect()
+    if args.if_missing and args.graph in db.list_graphs():
+        print(f"{args.graph} already exists; keeping it")
+        return
+    seed(db, args.graph)
     print(f"seeded {seed_graph()} and copied it to {args.graph}")
 
 

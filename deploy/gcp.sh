@@ -52,8 +52,9 @@ push)
   rm -f /tmp/clew.env.hosted
   onvm "set -e; mkdir -p ~/clew && tar -xzf /tmp/clew.tgz -C ~/clew && \
         if [ ! -f ~/clew/.env ]; then mv /tmp/clew.env.hosted ~/clew/.env; else rm -f /tmp/clew.env.hosted; fi && \
+        sudo docker ps -aq --filter label=clew.role=explorer | xargs -r sudo docker rm -f && \
         cd ~/clew && touch .hosted && sudo make up-deploy && \
-        sudo docker compose -f compose.yaml -f compose.deploy.yaml exec -T api python -m clew.graph.seed"
+        sudo docker compose -f compose.yaml -f compose.deploy.yaml exec -T api python -m clew.graph.seed --if-missing"
   echo "Clew is up: https://${DOMAIN}   (the store: https://shop.${DOMAIN})"
   ;;
 status)
