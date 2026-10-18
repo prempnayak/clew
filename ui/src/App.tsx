@@ -233,7 +233,7 @@ export function App() {
           </div>
           <div className="legend">
             ◆ entry page · <span className="good">●</span> fully tested · <span className="amber">●</span> work left ·
-            <span className="bad"> ◯</span> bug found · <span className="bad">→</span> broken in this release · dashed = previous release only · [e1] = tester here now
+            <span className="bad"> ◯</span> bug found · thicker arrow = more actions · <span className="bad">→</span> broken in this release · dashed = previous release only · [e1] = tester here now · hover a page to highlight its routes
           </div>
           <div className="charts"><Growth points={d.growth} /><LlmChart sessions={d.sessions} /></div>
         </section>

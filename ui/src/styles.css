@@ -89,3 +89,4 @@ button.danger { background: #3a1820; border-color: var(--bad); }
 .guide button.primary { padding: 8px 14px; }
 .small-note { font-size: 12px; }
 .activity li { cursor: default; }
+.map-fit { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 12px; padding: 3px 8px; }

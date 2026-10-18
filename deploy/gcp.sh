@@ -4,7 +4,9 @@
 #   export PROJECT_ID=your-project            # required
 #   export LLM=vertex                          # vertex (Gemini via the VM's service account) or off
 #   deploy/gcp.sh create     # APIs, service account, static IP, firewall, VM with Docker
-#   deploy/gcp.sh push       # upload the code (git archive of HEAD) and a hosted .env, then start everything
+#   deploy/gcp.sh push       # upload the code (git archive of HEAD) and a hosted .env, start everything, and
+#                            # reset everything: graph database wiped, store back to v1, a fresh empty map
+#   deploy/gcp.sh db         # open the FalkorDB Browser through an SSH tunnel: http://localhost:3001
 #   deploy/gcp.sh status     # containers and the public URL
 #   deploy/gcp.sh logs       # follow the logs
 #   deploy/gcp.sh ssh        # a shell on the VM
@@ -54,7 +56,10 @@ push)
         if [ ! -f ~/clew/.env ]; then mv /tmp/clew.env.hosted ~/clew/.env; else rm -f /tmp/clew.env.hosted; fi && \
         sudo docker ps -aq --filter label=clew.role=explorer | xargs -r sudo docker rm -f && \
         cd ~/clew && touch .hosted && sudo make up-deploy && \
-        sudo docker compose -f compose.yaml -f compose.deploy.yaml exec -T api python -m clew.graph.seed --if-missing"
+        C='sudo docker compose -f compose.yaml -f compose.deploy.yaml' && \
+        \$C exec -T falkordb sh -c 'redis-cli -a \"\$FALKORDB_PASSWORD\" --no-auth-warning FLUSHALL' && \
+        \$C exec -T api sh -c 'rm -rf /data/screenshots/*' && \
+        \$C exec -T api python -m clew.cli reset"
   echo "Clew is up: https://${DOMAIN}   (the store: https://shop.${DOMAIN})"
   ;;
 status)
@@ -62,6 +67,14 @@ status)
   echo "URL: https://$(ip).sslip.io (or your CLEW_DOMAIN)"
   ;;
 logs) onvm "cd ~/clew && sudo docker compose -f compose.yaml -f compose.deploy.yaml logs -f --tail=100" ;;
+db)
+  # The FalkorDB Browser listens only on the VM's localhost; tunnel it to this laptop (nothing is public).
+  PW="$(onvm "grep '^FALKORDB_PASSWORD=' ~/clew/.env | cut -d= -f2-" 2>/dev/null | tail -1)"
+  echo "FalkorDB Browser: http://localhost:${DB_PORT:-3001}"
+  echo "  connect with host: localhost   port: 6379   username: (empty)   password: ${PW}"
+  echo "  graph: nebula_live        (Ctrl+C closes the tunnel)"
+  $G compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap -- -N -L "${DB_PORT:-3001}:localhost:3000"
+  ;;
 ssh) $G compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap ;;
 destroy)
   $G compute instances delete "$VM" --zone="$ZONE" --quiet || true

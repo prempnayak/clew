@@ -84,7 +84,9 @@ One Google Cloud Compute Engine VM (`e2-standard-4`) runs everything, behind Cad
 export PROJECT_ID=your-project
 export LLM=vertex            # Gemini through the VM's service account (no keys), or LLM=off
 deploy/gcp.sh create         # APIs, service account, static IP, firewall (80/443 + IAP SSH), VM with Docker
-deploy/gcp.sh push           # uploads the code and a hosted .env with fresh secrets, builds, starts, seeds
+deploy/gcp.sh push           # uploads the code and a hosted .env with fresh secrets, builds, starts, and
+                             # resets everything: graph database wiped, store back to v1, a fresh empty map
+deploy/gcp.sh db             # opens the FalkorDB Browser through an SSH tunnel at http://localhost:3001
 deploy/gcp.sh status         # containers and URL · logs: follow logs · ssh: a shell on the VM
 deploy/gcp.sh destroy        # delete the VM, IP and firewall rules when you're done
 ```
@@ -104,7 +106,7 @@ Hosted mode (`HOSTED_MODE=true`):
 - disables "Restart services";
 - files GitHub issues in dry-run mode only.
 
-To redeploy after a change, commit and run `deploy/gcp.sh push` again; the VM keeps its `.env`. The VM costs roughly $0.15 an hour, so remember `destroy`.
+To redeploy after a change, commit and run `deploy/gcp.sh push` again. Every push starts from a clean slate (the VM keeps only its `.env` and HTTPS certificates). To look inside the graph during a demo, run `deploy/gcp.sh db`. It prints the connection details and tunnels the FalkorDB Browser to your laptop; the database itself is never public. The VM costs roughly $0.15 an hour, so remember `destroy`.
 
 ## Testing your own website
 
