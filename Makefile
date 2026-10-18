@@ -1,4 +1,9 @@
-LIVE = docker compose -f compose.yaml -f compose.dev.yaml
+# On the hosted VM (deploy/gcp.sh creates .hosted) every target uses the Caddy setup instead of dev ports.
+ifneq ($(wildcard .hosted),)
+LIVE ?= docker compose -f compose.yaml -f compose.deploy.yaml
+else
+LIVE ?= docker compose -f compose.yaml -f compose.dev.yaml
+endif
 API  = $(LIVE) exec api python -m
 
 .PHONY: up up-deploy down seed reset session stop kill-explorer restart-all deploy-v2 rollback mission \

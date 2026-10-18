@@ -23,13 +23,17 @@ Last updated: 2026-10-17 (Sat) afternoon.
 
 ## Development status
 
-All code work that doesn't need a human is done. The stack is running locally with `LLM_BACKEND=openai` (LM Studio).
+All code work that doesn't need a human is done (Oct 18):
+
+- fixes from the blind test are in (variant diff, sibling heal, default-instance edges, per-form regressions, claim renewal);
+- the full S1→S4 rehearsal passed in Docker with Qwen3-8B (README);
+- deploy scripts are in `deploy/` (guide: `docs/deploy.md`); demo runbook in `docs/demo-script.md`.
 
 ## Needs a human
 
 - **Gemini** (V7, V8): set `LLM_BACKEND=vertex` with `GOOGLE_CLOUD_PROJECT`, or `gemini_api` with `GOOGLE_API_KEY`. Confirm the model IDs in `config/models.yaml` (gemini profile) exist in the Model Garden.
 - **GitHub** (V11): a fine-grained token with Issues read/write on the issues repo; set `GITHUB_FILING=on`, `GITHUB_REPO`, `GITHUB_TOKEN`; run `make github-labels`.
-- **Hosted VM** (handoff §21): DNS, `HOSTED_MODE=true`, `make up-deploy && make seed`.
+- **Hosted VM**: install `gcloud`, `gcloud auth login`, then `deploy/gcp.sh create` and `deploy/gcp.sh push` (`docs/deploy.md`).
 - **Submission:** demo video (`docs/demo-script.md`), blog post, submission form with both tracks; ask Discord about the video length and two-track prizes (V14).
 
 ## Dev setup used in this session

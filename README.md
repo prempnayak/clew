@@ -147,25 +147,22 @@ FalkorDB behaviours we hit (in [`docs/decisions.md`](docs/decisions.md)):
 
 These are local runs on one laptop, scored with `make score` against the hidden answer key. We only report what we measured.
 
-**Docker stack, 4 explorer containers, local LLM** (Qwen3-8B 4-bit on LM Studio, used for the page reader and the Reporter):
+**Full demo run, Oct 18** (Docker stack, 4 explorer containers, Qwen3-8B 4-bit on LM Studio as page reader and Reporter):
+
+| Scenario | Result |
+|---|---|
+| S1 cold exploration, 10 min | **Recall 4/4** (B2 44.9 s, B1 70.1 s, B4 122.0 s, B3 236.4 s to first sighting), **0 decoys** filed, **0 duplicate executions**, route coverage **12/12**, 28 page types and 215 actions mapped with 28 LLM page reads |
+| S2 kill an explorer | explorer-2 was killed at 12:32:34 holding a claim on "Log in (valid)". explorer-1 completed that action at 12:34:30, once the lease had expired; it was executed exactly once. The container rejoined as a new agent |
+| S3 restart everything + mission | After `make restart-all` (FalkorDB included) the map, bugs and claims were intact. The mission "Test invalid coupon codes" (4 cases) was claimed by 3 explorers and finished within 7 s, with **0 page reads**. Session 2 overall: 3 LLM page reads for 57 newly tested actions |
+| S4 deploy v2 | 4 verify_fix jobs plus a replay of every known transition. **One regression issue** (R1, logged-in and logged-out variants merged), filed **3 min 40 s after the deploy**, with **no false regressions**. Rename "Add to cart" → "Add to bag" healed, B2 verified fixed and its issue closed, B1/B3/B4 commented "still present", Gift cards and the v2 empty-cart notice discovered |
+
+Earlier runs (Oct 17), same stack and model:
 
 | Run | Recall | Decoys filed | Duplicate executions | Route coverage | Time to first sighting |
 |---|---|---|---|---|---|
 | S1, session 1 (10 min) | 4/4 | 0 | 0 | 11/12 | B3 39.5 s · B1 67.6 s · B4 141.8 s · B2 367.3 s |
 | S1, repeat (10 min) | 4/4 | 0 | 0 | 11/12 | B3 43.1 s · B1 91.8 s · B2 194.1 s · B4 304.3 s |
 
-- **S2:** explorer-1 was killed holding a claim at 06:51:34. explorer-5 claimed the same action at 06:53:34, when the 120 s lease expired. The container rejoined as explorer-6.
-- **S3:** after `make restart-all` (FalkorDB included), the map, bugs and session were intact.
-  - The next session's mission ("Test invalid coupon codes", 4 cases) was claimed by 4 explorers in the same second and done within 5 s.
-  - It needed **0 page-reader calls**, against 25 LLM page reads for 194 newly tested actions in session 1.
-- **S4:** after deploying v2:
-  - **188 replay jobs + 4 verify_fix jobs** were queued;
-  - R1 was detected **2 min 44 s after the deploy** and filed as one regression (logged-out and logged-in variants merged), with the v1 route and the flows through it;
-  - "Add to cart" → "Add to bag" was healed, not filed;
-  - B2 was verified fixed and its issue closed;
-  - B1, B3 and B4 were commented "still present";
-  - Gift cards and the v2 empty-cart notice were discovered;
-  - no false regressions.
 - **Deterministic reader (`LLM_BACKEND=off`), 4 explorers in one process:** B1, B2 and B3 were filed within about 70 s and B4 at about 3.5 min.
 
 **S5, shared map vs isolated memories** (`make baseline`: 3 runs per mode, 4 explorer containers, 4 minutes each, deterministic page reader in both modes so the comparison measures coordination and memory rather than LLM queueing). Medians:
@@ -257,9 +254,7 @@ To run the query tests against the Docker image instead of the embedded build: `
 
 ### Hosted
 
-On a Compute Engine `e2-standard-4` VM: `cp .env.example .env` (with `HOSTED_MODE=true`, `CLEW_DOMAIN`, `GITHUB_FILING=dry_run`), then `make up-deploy && make seed`.
-
-Only Caddy listens publicly. The store's `/__*` hooks, FalkorDB, MCP and the controller are never routed. Hosted sessions are capped by explorers, minutes and a daily limit, and run one at a time. See handoff §21.
+`deploy/gcp.sh create && deploy/gcp.sh push` puts the whole system on one Compute Engine VM behind Caddy with automatic HTTPS (`<ip>.sslip.io` if you have no domain), with `HOSTED_MODE=true` caps and dry-run filing. Only Caddy listens publicly: the store's `/__*` hooks, FalkorDB, MCP and the controller are never routed. Step-by-step guide: [`docs/deploy.md`](docs/deploy.md). Demo video runbook: [`docs/demo-script.md`](docs/demo-script.md).
 
 ## Safety
 
