@@ -86,7 +86,7 @@ export LLM=vertex            # Gemini through the VM's service account (no keys)
 deploy/gcp.sh create         # APIs, service account, static IP, firewall (80/443 + IAP SSH), VM with Docker
 deploy/gcp.sh push           # uploads the code and a hosted .env with fresh secrets, builds, starts, and
                              # resets everything: graph database wiped, store back to v1, a fresh empty map
-deploy/gcp.sh db             # opens the FalkorDB Browser through an SSH tunnel at http://localhost:3001
+deploy/gcp.sh db             # opens the FalkorDB Browser through an SSH tunnel at http://localhost:3100
 deploy/gcp.sh status         # containers and URL · logs: follow logs · ssh: a shell on the VM
 deploy/gcp.sh destroy        # delete the VM, IP and firewall rules when you're done
 ```

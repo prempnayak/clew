@@ -6,7 +6,7 @@
 #   deploy/gcp.sh create     # APIs, service account, static IP, firewall, VM with Docker
 #   deploy/gcp.sh push       # upload the code (git archive of HEAD) and a hosted .env, start everything, and
 #                            # reset everything: graph database wiped, store back to v1, a fresh empty map
-#   deploy/gcp.sh db         # open the FalkorDB Browser through an SSH tunnel: http://localhost:3001
+#   deploy/gcp.sh db         # open the FalkorDB Browser through an SSH tunnel: http://localhost:3100
 #   deploy/gcp.sh status     # containers and the public URL
 #   deploy/gcp.sh logs       # follow the logs
 #   deploy/gcp.sh ssh        # a shell on the VM
@@ -70,10 +70,10 @@ logs) onvm "cd ~/clew && sudo docker compose -f compose.yaml -f compose.deploy.y
 db)
   # The FalkorDB Browser listens only on the VM's localhost; tunnel it to this laptop (nothing is public).
   PW="$(onvm "grep '^FALKORDB_PASSWORD=' ~/clew/.env | cut -d= -f2-" 2>/dev/null | tail -1)"
-  echo "FalkorDB Browser: http://localhost:${DB_PORT:-3001}"
+  echo "FalkorDB Browser: http://localhost:${DB_PORT:-3100}"
   echo "  connect with host: localhost   port: 6379   username: (empty)   password: ${PW}"
   echo "  graph: nebula_live        (Ctrl+C closes the tunnel)"
-  $G compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap -- -N -L "${DB_PORT:-3001}:localhost:3000"
+  $G compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap -- -N -L "${DB_PORT:-3100}:localhost:3000"
   ;;
 ssh) $G compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap ;;
 destroy)
