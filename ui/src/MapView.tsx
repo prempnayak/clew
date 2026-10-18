@@ -59,6 +59,8 @@ export function MapView({ states, edges, agents, onPick }: Props) {
       if (k) here.set(k, [...(here.get(k) ?? []), a.name.replace("explorer-", "e")]);
     }
     const added: string[] = [];
+    const placed = new Map<string, number>();
+    const firstLoad = c.nodes().length === 0;
     c.batch(() => {
       for (const s of states) {
         const who = here.get(s.key);
@@ -70,9 +72,17 @@ export function MapView({ states, edges, agents, onPick }: Props) {
         };
         const n = c.getElementById(s.key);
         if (n.empty()) {
+          // Place a new page next to the page that led to it, on a free spot of a ring around that parent,
+          // so the rest of the map stays where it is.
           const parent = edges.find((e) => e.target === s.key && !c.getElementById(e.source).empty());
           const p = parent ? c.getElementById(parent.source).position() : { x: 0, y: 0 };
-          c.add({ group: "nodes", data, position: { x: p.x + 80 * (Math.random() - 0.3), y: p.y + 60 + 40 * Math.random() } });
+          const pid = parent?.source ?? "";
+          const pnode = c.getElementById(pid);
+          const k = (placed.get(pid) ?? (pnode.nonempty() ? pnode.degree(false) : 0)) + 1;
+          placed.set(pid, k);
+          const angle = k * 2.4; // golden-angle spacing
+          const r = 90 + 18 * Math.floor(k / 6);
+          c.add({ group: "nodes", data, position: { x: p.x + r * Math.cos(angle), y: p.y + r * Math.sin(angle) } });
           added.push(s.key);
         } else n.data(data);
       }
@@ -91,12 +101,13 @@ export function MapView({ states, edges, agents, onPick }: Props) {
       const keys = new Set(states.map((s) => s.key));
       c.nodes().filter((n) => !keys.has(n.id())).remove();
     });
-    if (added.length) {
+    // A full layout only for the first load (or a big batch); otherwise new pages keep their placed spot.
+    if (firstLoad || added.length >= 8) {
       c.layout({
-        name: "cose", animate: added.length < 6, randomize: false, nodeRepulsion: () => 400000,
+        name: "cose", animate: false, randomize: firstLoad, nodeRepulsion: () => 400000,
         idealEdgeLength: () => 110, nodeOverlap: 20, gravity: 0.3, numIter: 1500, componentSpacing: 80,
       } as any).run();
-      if (added.length === c.nodes().length) c.fit(undefined, 30);
+      c.fit(undefined, 30);
     }
   }, [states, edges, agents]);
 

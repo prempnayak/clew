@@ -8,6 +8,23 @@ type Data = {
   overview?: Overview; states: State[]; edges: Edge[]; bugs: Bug[]; agents: Agent[]; jobs: any[];
   sessions: any[]; growth: { kind: string; at: number }[]; diff: any; calls: any[]; facts: any[]; timeline: any[];
 };
+type Part = "overview" | "map" | "agents" | "bugs" | "jobs" | "sessions" | "growth" | "diff" | "calls" | "facts" | "timeline";
+const ALL_PARTS: Part[] = ["overview", "map", "agents", "bugs", "jobs", "sessions", "growth", "diff", "calls", "facts", "timeline"];
+// Which panels each graph event can change.
+const EVENT_PARTS: Record<string, Part[]> = {
+  "state.created": ["map", "overview", "growth"],
+  transition: ["map", "overview", "timeline", "growth"],
+  claim: ["overview"],
+  "bug.updated": ["bugs", "map", "overview", "diff"],
+  "job.updated": ["jobs", "diff", "overview"],
+  "release.changed": ["overview", "diff", "map", "jobs"],
+  "action.healed": ["diff", "facts", "map"],
+  toolcall: ["calls", "bugs"],
+  session: ["overview", "sessions", "agents"],
+  mission: ["map", "overview"],
+  importance: ["map"],
+  coverage: ["overview", "sessions", "facts"],
+};
 const EMPTY: Data = {
   states: [], edges: [], bugs: [], agents: [], jobs: [], sessions: [], growth: [], diff: null, calls: [], facts: [],
   timeline: [],
@@ -28,32 +45,68 @@ export function App() {
   const [form, setForm] = useState({ explorers: 4, minutes: 10, mode: "shared", start_from: "fresh" });
   const timer = useRef<number | null>(null);
 
-  const load = useCallback(async () => {
+  // Each panel group and how to fetch it. Events refresh only the groups they affect.
+  const fetchers: Record<Part, () => Promise<Partial<Data>>> = {
+    overview: async () => ({ overview: await api.overview() }),
+    map: async () => { const m = await api.map(); return { states: m.states, edges: m.edges }; },
+    agents: async () => ({ agents: await api.agents() }),
+    bugs: async () => ({ bugs: await api.bugs() }),
+    jobs: async () => ({ jobs: await api.jobs() }),
+    sessions: async () => ({ sessions: await api.sessions() }),
+    growth: async () => ({ growth: await api.growth() }),
+    diff: async () => ({ diff: await api.diff() }),
+    calls: async () => ({ calls: await api.toolcalls() }),
+    facts: async () => ({ facts: await api.facts() }),
+    timeline: async () => ({ timeline: await api.timeline() }),
+  };
+  const pending = useRef<Set<Part>>(new Set());
+  const inflight = useRef(false);
+
+  const refresh = useCallback(async (parts: Part[]) => {
     try {
-      const [overview, map, bugs, agents, jobs, sessions, growth, diff, calls, facts, timeline] = await Promise.all([
-        api.overview(), api.map(), api.bugs(), api.agents(), api.jobs(), api.sessions(), api.growth(), api.diff(),
-        api.toolcalls(), api.facts(), api.timeline(),
-      ]);
-      setD({ overview, states: map.states, edges: map.edges, bugs, agents, jobs, sessions, growth, diff, calls, facts, timeline });
+      const results = await Promise.all(parts.map((p) => fetchers[p]()));
+      setD((prev) => Object.assign({}, prev, ...results));
       setErr(null);
     } catch (e) {
       setErr(String(e));
     }
   }, []);
+  const load = useCallback(() => refresh(ALL_PARTS), [refresh]);
+
+  // Batch events for 250 ms, run one refresh at a time; events that arrive meanwhile go into the next batch.
+  const flush = useCallback(async () => {
+    if (inflight.current || pending.current.size === 0) return;
+    inflight.current = true;
+    const parts = [...pending.current];
+    pending.current.clear();
+    await refresh(parts);
+    inflight.current = false;
+    if (pending.current.size) timer.current = window.setTimeout(flush, 250);
+  }, [refresh]);
 
   useEffect(() => {
     load();
-    const poll = window.setInterval(load, 5000);
+    const poll = window.setInterval(load, 10000); // fallback only; events drive updates
     const es = new EventSource("/api/stream");
-    const kick = () => {
-      if (timer.current) return;
-      timer.current = window.setTimeout(() => { timer.current = null; load(); }, 700);
+    const want = (parts: Part[]) => {
+      parts.forEach((p) => pending.current.add(p));
+      if (!timer.current) timer.current = window.setTimeout(() => { timer.current = null; flush(); }, 250);
     };
-    for (const ev of ["state.created", "transition", "claim", "bug.updated", "job.updated", "release.changed", "toolcall", "session", "mission", "action.healed"]) {
-      es.addEventListener(ev, kick);
-    }
+    // A heartbeat carries the tester's current work: update the list straight away, no fetch.
+    es.addEventListener("agent.heartbeat", (e) => {
+      const h = JSON.parse((e as MessageEvent).data);
+      setD((prev) => {
+        const known = prev.agents.some((a) => a.name === h.agent);
+        const now = Date.now();
+        const agents = known
+          ? prev.agents.map((a) => (a.name === h.agent ? { ...a, state: h.state, work: h.work, last_seen: now } : a))
+          : [...prev.agents, { name: h.agent, role: "explorer", state: h.state, work: h.work, session: null, last_seen: now }];
+        return { ...prev, agents };
+      });
+    });
+    for (const [ev, parts] of Object.entries(EVENT_PARTS)) es.addEventListener(ev, () => want(parts));
     return () => { window.clearInterval(poll); es.close(); };
-  }, [load]);
+  }, [load, flush]);
 
   const closeGuide = () => {
     try { localStorage.setItem("clew.guide", "seen"); } catch { /* private mode: show it again next time */ }
