@@ -136,9 +136,20 @@ def open_graph(name: str | None = None, db=None) -> Graph:
     return Graph(db or connect(), name or graph_name())
 
 
-def reset_from(db, source: str, dest: str) -> Graph:
-    """GRAPH.DELETE dest, then GRAPH.COPY source dest (a fresh map from the seed or a snapshot)."""
-    target = Graph(db, dest)
-    target.delete()
-    Graph(db, source).copy_to(dest)
+def reset_from(db, source: str, dest: str, attempts: int = 10) -> Graph:
+    """GRAPH.DELETE dest, then GRAPH.COPY source dest (a fresh map from the seed or a snapshot).
+
+    Running services (heartbeats, the release watcher) can write to `dest` between the delete and the copy,
+    which re-creates it, and GRAPH.COPY refuses to overwrite an existing graph. So retry the pair.
+    """
+    for attempt in range(attempts):
+        target = Graph(db, dest)
+        target.delete()
+        try:
+            Graph(db, source).copy_to(dest)
+            return Graph(db, dest)
+        except Exception:  # noqa: BLE001 - redis ResponseError("copy failed")
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
     return Graph(db, dest)

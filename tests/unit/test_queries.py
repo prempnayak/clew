@@ -541,3 +541,29 @@ def test_claim_renewal_and_loss(graph):
     j = graph.one("Q05", {"agent": "e1", "now": 10, "lease_ms": 180_000})
     assert graph.one("Q58b", {"id": j["id"], "agent": "e1", "now": 20})
     assert graph.one("Q58b", {"id": j["id"], "agent": "e2", "now": 20}) is None
+
+
+def test_reset_from_survives_a_write_racing_the_copy(graph, db):
+    """A service writing to the destination between the delete and the copy re-creates it; the copy retries."""
+    from clew.graph.client import Graph, reset_from
+
+    nebula_map(graph)
+    dest = Graph(db, graph.name + "_race")
+    real_copy = Graph.copy_to
+    calls = {"n": 0}
+
+    def racing_copy(self, d):
+        calls["n"] += 1
+        if calls["n"] == 1:  # a heartbeat lands first and re-creates the destination
+            Graph(db, d).run(
+                "Q28", {"name": "x", "role": "r", "model": "m", "session": None, "state": "s", "work": None, "now": 1}
+            )
+        return real_copy(self, d)
+
+    Graph.copy_to = racing_copy
+    try:
+        out = reset_from(db, graph.name, dest.name)
+        assert calls["n"] == 2 and out.one("Q23")["states"] == 8
+    finally:
+        Graph.copy_to = real_copy
+        dest.delete()
